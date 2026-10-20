@@ -1,5 +1,7 @@
 # BaoCode
 
+> 自用 fork：默认禁用官方安装包更新，上游更新需先审查再合并。参见[维护说明](docs/fork.md)。
+
 [English](README.md) · **简体中文** · [日本語](README_JA.md) · [Français](README_FR.md) · [Español](README_ES.md)
 
 一个出色、易用的 [Claude Code](https://github.com/anthropics/claude-code) 桌面界面，内置毫秒级响应的快速 IDE。

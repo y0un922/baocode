@@ -42,6 +42,14 @@ UpdateRelease _release() {
 }
 
 void main() {
+  test(
+    'fork builds do not use the official package update channel',
+    () {
+      expect(platformUpdates(updatesDirectory: '/unused'), isNull);
+    },
+    skip: (Platform.environment[manifestUrlVariable]?.trim() ?? '').isNotEmpty,
+  );
+
   late Directory temp;
 
   setUp(() async {

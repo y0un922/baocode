@@ -9,17 +9,13 @@ import 'update_manifest.dart';
 import 'update_service.dart';
 import 'version.dart';
 
-/// What updates the app where it runs: the platform's download, and what
-/// installs it. Null where there are none: not macOS, Windows or Linux, or a
-/// debug build (which would replace the build folder's app), unless
-/// [manifestUrlVariable] points at a manifest to try.
+/// This fork updates through reviewed source merges, not official binaries.
+/// Only an explicit [manifestUrlVariable] enables package updates.
 PlatformUpdates? platformUpdates({required String updatesDirectory}) {
   final environment = Platform.environment;
   final override = environment[manifestUrlVariable]?.trim() ?? '';
-  if (!kReleaseMode && override.isEmpty) return null;
-  final manifestUrl = Uri.tryParse(
-    override.isEmpty ? defaultManifestUrl : override,
-  );
+  if (override.isEmpty) return null;
+  final manifestUrl = Uri.tryParse(override);
   if (manifestUrl == null) return null;
   final executable = Platform.resolvedExecutable;
   final UpdateInstaller installer;
