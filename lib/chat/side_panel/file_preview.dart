@@ -572,6 +572,7 @@ class _FilePreviewState extends State<FilePreview> {
           text: localizedFileError(context.l10n, error),
         );
       case _Diff(:final rows):
+        final gutter = _gutter(context, rows.length);
         return CodeTextScale(
           child: _Lines(
             key: ValueKey(('diff', _request.path)),
@@ -580,8 +581,8 @@ class _FilePreviewState extends State<FilePreview> {
             reveal: widget.reveal,
             target: _diffTarget(rows),
             width:
-                _width(context, rows.map((row) => row.text)) +
-                _gutter(context, rows.length) * 2 +
+                _widthOf(context, rows, () => rows.map((row) => row.text)) +
+                gutter * 2 +
                 20,
             // Lines of the file as it is now, none taken out.
             onCopy: (first, last, text) {
@@ -594,7 +595,7 @@ class _FilePreviewState extends State<FilePreview> {
               type: rows[i].type,
               text: rows[i].text,
               colors: _colors.elementAtOrNull(i),
-              gutter: _gutter(context, rows.length),
+              gutter: gutter,
               sideways: sideways,
             ),
           ),
@@ -615,6 +616,7 @@ class _FilePreviewState extends State<FilePreview> {
         }
         if (_edit case final edit?) return _editing(edit);
         final range = _request.range;
+        final gutter = _gutter(context, lines.length);
         return CodeTextScale(
           child: _Lines(
             key: ValueKey(('text', _request.path)),
@@ -622,14 +624,14 @@ class _FilePreviewState extends State<FilePreview> {
             lineHeight: _lineHeight(context),
             reveal: widget.reveal,
             target: range == null ? null : range.start - 1,
-            width: _width(context, lines) + _gutter(context, lines.length) + 20,
+            width: _widthOf(context, lines, () => lines) + gutter + 20,
             onCopy: (first, last, text) => _copied(first + 1, last + 1, text),
             row: (context, i, sideways) => _LineRow(
               numbers: (null, i + 1),
               type: DiffLineType.context,
               text: lines[i],
               colors: _colors.elementAtOrNull(i),
-              gutter: _gutter(context, lines.length),
+              gutter: gutter,
               sideways: sideways,
               marked:
                   range != null && i + 1 >= range.start && i + 1 <= range.end,
@@ -735,16 +737,49 @@ class _FilePreviewState extends State<FilePreview> {
     return width;
   }
 
+  /// [_width] of [shown]'s lines, kept while they, the font and its scale
+  /// are the same: laying out every line of a long file again on each
+  /// build (the chat beside it streaming) made it crawl.
+  double _widthOf(
+    BuildContext context,
+    Object shown,
+    Iterable<String> Function() lines,
+  ) {
+    final key = (shown, _codeStyle(context), _codeScaler(context));
+    if (_measured case (final kept, final width) when kept == key) {
+      return width;
+    }
+    final width = _width(context, lines());
+    _measured = (key, width);
+    return width;
+  }
+
+  ((Object, TextStyle, TextScaler), double)? _measured;
+
   /// As wide as the widest rendered line, including wide fallback glyphs.
+  /// Only those that may be the widest are laid out: a line's width, in
+  /// the code font's columns, is at least its characters and at most a
+  /// wide glyph two columns, so no line under half the longest's estimate
+  /// can be wider than it.
   static double _width(BuildContext context, Iterable<String> lines) {
     final style = _codeStyle(context);
     final painter = TextPainter(
       textDirection: TextDirection.ltr,
       textScaler: _codeScaler(context),
     );
+    int columns(String line) {
+      var n = 0;
+      for (final unit in line.codeUnits) {
+        n += unit == 0x09 ? 4 : (unit < 0x80 ? 1 : 2);
+      }
+      return n;
+    }
+
+    final estimates = [for (final line in lines) (line, columns(line))];
+    final most = estimates.fold(0, (most, e) => math.max(most, e.$2));
     var width = 0.0;
-    for (final line in lines) {
-      if (line.isEmpty) continue;
+    for (final (line, estimate) in estimates) {
+      if (line.isEmpty || estimate * 2 < most) continue;
       painter.text = TextSpan(
         text: line.replaceAll('\t', '    '),
         style: style,
