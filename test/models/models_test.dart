@@ -728,6 +728,51 @@ void main() {
       );
     });
 
+    test('subagents on another upstream take an Anthropic session through '
+        'the proxy, their model as its ref', () {
+      const provider = ModelProvider(
+        id: 'a',
+        name: 'A',
+        baseUrl: 'https://api.anthropic.com',
+        headers: {'x-tenant': 'acme'},
+        roles: ProviderRoles(subagent: '@ds/deepseek-chat'),
+      );
+      expect(provider.subagentUpstream, 'ds');
+      expect(provider.throughProxy, isTrue);
+      final env = launchEnvironment(
+        provider: provider,
+        model: 'claude-opus-4-5',
+        key: 'sk-ant',
+        proxy: (baseUrl: 'http://127.0.0.1:5000/p/a', token: 'tok'),
+      );
+      expect(env['ANTHROPIC_BASE_URL'], 'http://127.0.0.1:5000/p/a');
+      expect(env['ANTHROPIC_AUTH_TOKEN'], 'tok');
+      expect(env['ANTHROPIC_API_KEY'], '');
+      expect(env.values, isNot(contains('sk-ant')));
+      expect(env['CLAUDE_CODE_SUBAGENT_MODEL'], '@ds/deepseek-chat');
+      expect(env['CLAUDE_CODE_SUBAGENT_MODEL_FORCE'], '1');
+      expect(env['NO_PROXY'], '127.0.0.1,localhost');
+      // The proxy sets its headers; Anthropic's effort stays the CLI's.
+      expect(env['ANTHROPIC_CUSTOM_HEADERS'], '');
+      expect(env['CLAUDE_CODE_ALWAYS_ENABLE_EFFORT'], '1');
+      expect(
+        () => launchEnvironment(provider: provider, model: 'm'),
+        throwsStateError,
+      );
+
+      // One of its own models, picked as a ref, by its id: no proxy.
+      const own = ModelProvider(
+        id: 'a',
+        name: 'A',
+        baseUrl: 'https://api.anthropic.com',
+        roles: ProviderRoles(subagent: '@a/claude-haiku-4-5'),
+      );
+      expect(own.throughProxy, isFalse);
+      final direct = launchEnvironment(provider: own, model: 'm', key: 'k');
+      expect(direct['ANTHROPIC_BASE_URL'], 'https://api.anthropic.com');
+      expect(direct['CLAUDE_CODE_SUBAGENT_MODEL'], 'claude-haiku-4-5');
+    });
+
     test('a directly-spoken upstream carries its own headers in Claude '
         'Code\'s variable, auth headers left out', () {
       final env = launchEnvironment(

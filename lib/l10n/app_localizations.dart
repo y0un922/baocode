@@ -10980,8 +10980,14 @@ abstract class AppLocalizations {
   /// No description provided for @modelsRoleSubagentDescription.
   ///
   /// In en, this message translates to:
-  /// **'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit).'**
+  /// **'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit). It may be another upstream\'s: BaoCode\'s local proxy sends its requests there.'**
   String get modelsRoleSubagentDescription;
+
+  /// Under a role that picks another upstream's model, once that upstream or model is gone.
+  ///
+  /// In en, this message translates to:
+  /// **'This model is no longer one of its upstream\'s: subagents\' requests to it will fail.'**
+  String get modelsRoleMissing;
 
   /// No description provided for @modelsAdvanced.
   ///

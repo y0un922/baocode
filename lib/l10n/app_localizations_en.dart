@@ -6769,7 +6769,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsRoleSubagentDescription =>
-      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit).';
+      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit). It may be another upstream\'s: BaoCode\'s local proxy sends its requests there.';
+
+  @override
+  String get modelsRoleMissing =>
+      'This model is no longer one of its upstream\'s: subagents\' requests to it will fail.';
 
   @override
   String get modelsAdvanced => 'Advanced';

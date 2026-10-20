@@ -376,7 +376,9 @@ class ProviderRoles {
   /// the app's (agents' titles).
   final String? haiku;
 
-  /// `CLAUDE_CODE_SUBAGENT_MODEL`.
+  /// `CLAUDE_CODE_SUBAGENT_MODEL`: a model of the upstream, or another
+  /// upstream's as a [modelRef] (`@<id>/<model>`), which the proxy sends
+  /// there.
   final String? subagent;
 
   static const _keys = ['main', 'opus', 'sonnet', 'haiku', 'subagent'];
@@ -652,6 +654,18 @@ class ModelProvider {
 
   ProviderModel? model(String id) =>
       models.where((model) => model.id == id).firstOrNull;
+
+  /// The other upstream its subagents' role picks a model of, if it does
+  /// (`@<id>/<model>`).
+  String? get subagentUpstream => switch (parseModelRef(roles.subagent)) {
+    (:final provider, model: _) when provider != id => provider,
+    _ => null,
+  };
+
+  /// Whether its sessions go through the local proxy ([ModelProxy]): it
+  /// is spoken to there, or its subagents run on another upstream, which
+  /// the proxy alone can send a request to.
+  bool get throughProxy => protocol.proxied || subagentUpstream != null;
 
   ModelProvider copyWith({
     String? name,

@@ -1275,43 +1275,70 @@ class _ProviderSettingsPageState extends State<ProviderSettingsPage> {
   List<Widget> _roles(BuildContext context) {
     final l10n = context.l10n;
     final provider = _provider;
+    // The other upstreams whose models subagents may run on: through the
+    // proxy, any that can be reached (not Claude Code's own, whose key is
+    // not the app's).
+    final others = [
+      for (final other in _providers.enabled)
+        if (other.id != provider.id && other.connected) other,
+    ];
     Widget role(
       String role,
       String label,
       String description, {
       String? warning,
+      bool elsewhere = false,
     }) {
       final current = provider.roles[role];
+      final picked = parseModelRef(current);
+      final pickedProvider = picked == null
+          ? null
+          : _providers.provider(picked.provider);
+      final pickedModel = picked == null
+          ? null
+          : pickedProvider?.model(picked.model);
+      final missing = picked != null && pickedModel == null;
       final shown = switch (current) {
+        _ when pickedModel != null =>
+          '${pickedProvider!.name} · ${pickedModel.displayName}',
+        _ when picked != null => picked.model,
         final id? => provider.model(id)?.displayName ?? id,
         null => l10n.modelsRoleUnset,
       };
+      Widget caution(String text) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2, right: 4),
+            child: Icon(Codicons.warning, size: 13, color: AppColors.caution),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: SettingsText.description.copyWith(
+                color: AppColors.caution,
+              ),
+            ),
+          ),
+        ],
+      );
+      IdeMenuAction pick(String label, String value) => IdeMenuAction(
+        label,
+        checked: current == value,
+        onSelected: () => unawaited(
+          _save(
+            _providerNow.copyWith(
+              roles: _providerNow.roles.copyWith(role, value),
+            ),
+          ),
+        ),
+      );
       return SettingsRow(
         label: label,
         description: description,
         below: [
-          if (warning != null && current == null)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, right: 4),
-                  child: Icon(
-                    Codicons.warning,
-                    size: 13,
-                    color: AppColors.caution,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    warning,
-                    style: SettingsText.description.copyWith(
-                      color: AppColors.caution,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          if (warning != null && current == null) caution(warning),
+          if (missing) caution(l10n.modelsRoleMissing),
         ],
         trailing: SettingsDropdown(
           current: shown,
@@ -1330,17 +1357,19 @@ class _ProviderSettingsPageState extends State<ProviderSettingsPage> {
             ),
             const IdeMenuSeparator(),
             for (final model in provider.enabledModels)
-              IdeMenuAction(
-                model.displayName,
-                checked: current == model.id,
-                onSelected: () => unawaited(
-                  _save(
-                    _providerNow.copyWith(
-                      roles: _providerNow.roles.copyWith(role, model.id),
-                    ),
-                  ),
+              pick(model.displayName, model.id),
+            if (elsewhere && others.isNotEmpty) ...[
+              const IdeMenuSeparator(),
+              for (final other in others)
+                IdeMenuAction(
+                  other.name,
+                  checked: picked?.provider == other.id,
+                  submenu: [
+                    for (final model in other.enabledModels)
+                      pick(model.displayName, modelRef(other.id, model.id)),
+                  ],
                 ),
-              ),
+            ],
           ],
         ),
       );
@@ -1360,6 +1389,7 @@ class _ProviderSettingsPageState extends State<ProviderSettingsPage> {
         'subagent',
         l10n.modelsRoleSubagent,
         l10n.modelsRoleSubagentDescription,
+        elsewhere: true,
       ),
     ];
   }
