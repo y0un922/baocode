@@ -17,7 +17,12 @@ abstract final class ModelBrand {
   /// OpenRouter…; null for a relay of no maker's.
   static String? ofProvider(ModelProvider provider) {
     if (provider.protocol == ProviderProtocol.codex) return 'openai';
-    final uri = Uri.tryParse(provider.baseUrl.trim());
+    return ofUrl(provider.baseUrl);
+  }
+
+  /// The maker an API at [baseUrl] is of; null for a relay of no maker's.
+  static String? ofUrl(String baseUrl) {
+    final uri = Uri.tryParse(baseUrl.trim());
     if (uri == null) return null;
     final host = uri.host.toLowerCase();
     if (host == 'localhost' || host == '127.0.0.1') {
@@ -57,7 +62,7 @@ abstract final class ModelBrand {
     (_word(r'step-'), 'stepfun'),
     (_word(r'baichuan'), 'baichuan'),
     (_word(r'yi-'), 'yi'),
-    (_word(r'grok|xai'), 'xai'),
+    (_word(r'grok|xai'), 'grok'),
     (
       _word(r'mistral|mixtral|codestral|devstral|magistral|ministral|pixtral'),
       'mistral',
@@ -66,8 +71,9 @@ abstract final class ModelBrand {
     (_word(r'phi-'), 'microsoft'),
     (_word(r'nemotron|nvidia'), 'nvidia'),
     (_word(r'sonar|perplexity'), 'perplexity'),
+    (_word(r'gpt|chatgpt|codex'), 'codex'),
     // Last, as the most general: `o3` alone, or `o3-mini`.
-    (_word(r'gpt|chatgpt|codex|openai|o\d+(?:$|[-_.: ])'), 'openai'),
+    (_word(r'openai|o\d+(?:$|[-_.: ])'), 'openai'),
   ];
 
   static const _hosts = [

@@ -116,6 +116,8 @@
     "description": "Command category: the chat window's commands."
   },
   "cmdChatNewAgent": "New Chat",
+  "cmdChatSplitPane": "Split Pane",
+  "cmdChatSplitPaneDown": "Split Pane Down",
   "cmdChatClosePane": "Close Pane",
   "cmdChatCloseTab": "Close Chat",
   "cmdChatNextAgent": "Open Next Agent",
@@ -1501,9 +1503,9 @@
       }
     }
   },
-  "turnSpeedHint": "Average output speed",
+  "turnSpeedHint": "Actual output tokens / total model request time (includes waiting and thinking; excludes local tools)",
   "turnOutputTokensHint": "Written so far this turn",
-  "turnSpeedLiveHint": "Output speed, sampled over the last 2 seconds",
+  "turnSpeedLiveHint": "Average TPS of completed model requests, updated when actual usage arrives",
   "turnDurationHint": "Time this turn took",
   "turnCostHint": "Cost of this turn",
   "turnWorked": "Worked for {duration}",
@@ -3671,6 +3673,8 @@
       }
     }
   },
+  "workspaceSplitPane": "Split pane: a new agent beside this one",
+  "chatRailNoText": "(no text)",
   "workspaceClosePane": "Close pane",
   "workspaceLoadingProjects": "Loading projects…",
   "workspaceDesktopOnly": "Agents run in the desktop app",
@@ -5630,11 +5634,6 @@
   "tipImportKeybindingsBody": "Bring your keybindings over from VS Code or Cursor.",
   "tipColorThemeBody": "Pick the colors of the chat, the IDE and the terminal.",
   "cmdShowSetupGuide": "Show Setup Guide",
-  "cmdStarOnGitHub": "Star BaoCode on GitHub",
-  "starPromptMessage": "Enjoying BaoCode?",
-  "starPromptDetail": "BaoCode is free and open source. If it helps you, a star on GitHub helps other people find it.",
-  "starPromptStar": "Star on GitHub",
-  "starPromptLater": "Maybe Later",
   "cmdResetFeatureTips": "Reset Feature Tips",
   "newChatWorkspaceGroup": "Workspaces",
   "@newChatWorkspaceGroup": {

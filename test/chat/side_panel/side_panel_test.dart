@@ -860,6 +860,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('rapid list toggle clicks do not command the window', (
+    tester,
+  ) async {
+    const channel = MethodChannel('baocode/window');
+    final calls = <MethodCall>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    final (:panel, :session, files: _) = await _pumpChat(tester);
+    panel.showSection(session, SidePanelSection.files);
+    await tester.pumpAndSettle();
+    final toggle = find.byKey(const ValueKey('side-panel-list-toggle'));
+    final position = tester.getCenter(toggle);
+    expect(panel.listShown, isTrue);
+
+    await tester.tapAt(position, kind: PointerDeviceKind.mouse);
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(panel.listShown, isFalse);
+    expect(tester.getCenter(toggle), position);
+    await tester.tapAt(position, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+    expect(panel.listShown, isTrue);
+    expect(
+      calls.where(
+        (call) =>
+            call.method == 'handleTitleDoubleClick' ||
+            call.method == 'growWindow',
+      ),
+      isEmpty,
+    );
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
   testWidgets('the files page lists the project as the IDE\'s explorer; a '
       'file opens in a tab beside it', (tester) async {
     final (:panel, :session, files: _) = await _pumpChat(

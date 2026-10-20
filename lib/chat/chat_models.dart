@@ -58,7 +58,8 @@ class TurnUsage {
   /// Tokens it wrote, all its requests together.
   final int? outputTokens;
 
-  /// How fast it wrote, while it did.
+  /// Actual output tokens over complete model request time, including
+  /// waiting and thinking but excluding local tools.
   final double? tokensPerSecond;
 
   /// What the turn cost, in dollars.
@@ -70,9 +71,8 @@ class TurnUsage {
       : (inputTokens ?? 0) + (outputTokens ?? 0);
 }
 
-/// What the model has written so far in the turn under way, and how fast it
-/// writes (now while it does, else on average so far; null before it has
-/// written long enough to say).
+/// Output so far (estimated while streaming), and the average TPS of
+/// completed requests; null until actual usage and request time are known.
 class TurnOutput {
   const TurnOutput({required this.tokens, this.tokensPerSecond});
 

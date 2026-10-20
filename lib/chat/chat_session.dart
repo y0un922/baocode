@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:path/path.dart' as p;
 
 import '../kernel/agent_kernel.dart';
@@ -412,9 +413,43 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
   }
 
   List<KernelCommand> get commands => switch (_kernel) {
-    final ProvidesCommands kernel => kernel.commands,
+    final ProvidesCommands kernel => _withMcp(kernel.commands),
     _ => const [],
   };
+
+  /// Shows the MCP servers of a kernel that manages them, rather than
+  /// asking the agent about them.
+  static const _mcpCommand = KernelCommand(
+    'mcp',
+    'Manage MCP servers',
+    Icons.hub_outlined,
+  );
+
+  List<KernelCommand>? _listedCommands;
+  List<KernelCommand> _commands = const [];
+
+  /// [listed] with `/mcp`: the same list while [listed] is.
+  List<KernelCommand> _withMcp(List<KernelCommand> listed) {
+    if (_kernel is! ManagesMcpServers) return listed;
+    if (!identical(listed, _listedCommands)) {
+      _listedCommands = listed;
+      _commands = [
+        ...listed.where((command) => command.name != _mcpCommand.name),
+        _mcpCommand,
+      ];
+    }
+    return _commands;
+  }
+
+  bool _mcpServersShown = false;
+
+  /// Whether `/mcp` has the MCP servers shown, until [hideMcpServers].
+  bool get mcpServersShown => _mcpServersShown && _kernel is ManagesMcpServers;
+
+  void hideMcpServers() {
+    _mcpServersShown = false;
+    notifyListeners();
+  }
 
   /// Files matching an `@` query; null when the kernel does not look.
   Future<List<FileSuggestion>> Function(String query)? get suggestFiles =>
@@ -966,6 +1001,14 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
     bool now = false,
     OpenEditor? Function()? editor,
   }) {
+    if (_kernel is ManagesMcpServers &&
+        message.text.trim() == '/${_mcpCommand.name}' &&
+        message.images.isEmpty) {
+      _mcpServersShown = true;
+      refreshMcpServers();
+      notifyListeners();
+      return;
+    }
     if (message.isEmpty || !canSend) return;
     final turn = KernelTurn(
       id: newTurnId(),

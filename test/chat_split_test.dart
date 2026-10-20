@@ -369,6 +369,38 @@ void main() {
     expect(find.bySemanticsLabel('Close pane'), findsNothing);
   });
 
+  testWidgets('a pane\'s split button opens a new agent beside it, focused; '
+      'with four, there is none', (tester) async {
+    final workspace = await pumpApp(tester);
+    final alone = workspace.current!;
+    const label = 'Split pane: a new agent beside this one';
+    Finder split(String title) => find.descendant(
+      of: pane(title),
+      matching: find.bySemanticsLabel(label),
+    );
+
+    await tester.tap(split(first));
+    await tester.pumpAndSettle();
+    final added = workspace.current!;
+    expect(added, isNot(same(alone)));
+    expect(added.project, alone.project);
+    expect(workspace.grid.cells, [alone, added, alone, added]);
+
+    await tester.tap(split(first));
+    await tester.pumpAndSettle();
+    final below = workspace.current!;
+    expect(workspace.grid.cells, [alone, added, below, added]);
+    // ⌘\ splits the focused one.
+    workspace.select(added);
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.backslash);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    expect(workspace.grid.cells, [alone, added, below, workspace.current]);
+    expect(find.bySemanticsLabel(label), findsNothing);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
   testWidgets('the window\'s tools, in the top right pane, are the focused '
       'agent\'s: a click on them, or on another pane\'s close, leaves the '
       'focus; Fast Ide opens the focused agent', (tester) async {

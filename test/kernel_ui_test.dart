@@ -285,7 +285,8 @@ void main() {
     final thread = workspace.selected;
     expect(thread.kernel, MockKernels.codex);
     expect(picker('Codex'), findsOneWidget);
-    expect(picker('GPT-5.5 Codex'), findsOneWidget);
+    // Not started, its models are asked of Codex all the same.
+    expect(picker('GPT-5.5 Codex · Medium'), findsOneWidget);
 
     // Codex has no Plan mode.
     await tester.tap(picker('Agent'));
@@ -310,6 +311,20 @@ void main() {
     await tester.pump();
     expect(workspace.selected, isNot(thread));
     expect(workspace.selected.kernel, MockKernels.codex);
+
+    // But not with Codex's model on Claude Code, switched back to it.
+    await tester.tap(picker('Codex'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Claude Code').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(workspace.selected.kernel, MockKernels.claudeCode);
+    expect(
+      workspace.selected.session.kernelContext.settings[KernelChoiceKind
+          .model
+          .name],
+      isNot('gpt-5.5-codex'),
+    );
 
     thread.session.stop();
     await tester.pump(const Duration(seconds: 1));
@@ -676,7 +691,7 @@ void main() {
   testWidgets('the MCP panel shows each server, and fixes what it can', (
     tester,
   ) async {
-    // Shown from the settings (to come), over an agent's session.
+    // Shown over an agent's session (see /mcp).
     final session = ChatSession(
       kernel: MockKernels.claudeCode,
       historyCount: 0,
@@ -725,6 +740,29 @@ void main() {
     expect(find.text('Disabled'), findsOneWidget);
     expect(find.byType(Switch), findsNothing);
     expect(session.mcpServers!.first.status, McpServerStatus.disabled);
+  });
+
+  testWidgets('/mcp shows the MCP servers, not asking the agent', (
+    tester,
+  ) async {
+    final session = await pumpSession(tester, MockKernels.claudeCode);
+    expect(session.commands.where((c) => c.name == 'mcp'), hasLength(1));
+    session.send(const ComposerMessage(text: '/mcp'));
+    await tester.pump();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    expect(find.byType(McpServersPanel), findsOneWidget);
+    expect(find.text('1 of 3 connected'), findsOneWidget);
+    expect(session.itemCount, 0);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(McpServersPanel),
+        matching: find.byIcon(Icons.close_rounded),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(McpServersPanel), findsNothing);
   });
 
   testWidgets('images sent show in the message', (tester) async {

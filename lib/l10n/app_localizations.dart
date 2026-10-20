@@ -302,6 +302,18 @@ abstract class AppLocalizations {
   /// **'New Chat'**
   String get cmdChatNewAgent;
 
+  /// No description provided for @cmdChatSplitPane.
+  ///
+  /// In en, this message translates to:
+  /// **'Split Pane'**
+  String get cmdChatSplitPane;
+
+  /// No description provided for @cmdChatSplitPaneDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Split Pane Down'**
+  String get cmdChatSplitPaneDown;
+
   /// No description provided for @cmdChatClosePane.
   ///
   /// In en, this message translates to:
@@ -4463,7 +4475,7 @@ abstract class AppLocalizations {
   /// No description provided for @turnSpeedHint.
   ///
   /// In en, this message translates to:
-  /// **'Average output speed'**
+  /// **'Actual output tokens / total model request time (includes waiting and thinking; excludes local tools)'**
   String get turnSpeedHint;
 
   /// No description provided for @turnOutputTokensHint.
@@ -4475,7 +4487,7 @@ abstract class AppLocalizations {
   /// No description provided for @turnSpeedLiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Output speed, sampled over the last 2 seconds'**
+  /// **'Average TPS of completed model requests, updated when actual usage arrives'**
   String get turnSpeedLiveHint;
 
   /// No description provided for @turnDurationHint.
@@ -8324,6 +8336,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit {language}…'**
   String editorEditLanguage(String language);
+
+  /// No description provided for @workspaceSplitPane.
+  ///
+  /// In en, this message translates to:
+  /// **'Split pane: a new agent beside this one'**
+  String get workspaceSplitPane;
+
+  /// No description provided for @chatRailNoText.
+  ///
+  /// In en, this message translates to:
+  /// **'(no text)'**
+  String get chatRailNoText;
 
   /// No description provided for @workspaceClosePane.
   ///
@@ -12632,36 +12656,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show Setup Guide'**
   String get cmdShowSetupGuide;
-
-  /// No description provided for @cmdStarOnGitHub.
-  ///
-  /// In en, this message translates to:
-  /// **'Star BaoCode on GitHub'**
-  String get cmdStarOnGitHub;
-
-  /// No description provided for @starPromptMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Enjoying BaoCode?'**
-  String get starPromptMessage;
-
-  /// No description provided for @starPromptDetail.
-  ///
-  /// In en, this message translates to:
-  /// **'BaoCode is free and open source. If it helps you, a star on GitHub helps other people find it.'**
-  String get starPromptDetail;
-
-  /// No description provided for @starPromptStar.
-  ///
-  /// In en, this message translates to:
-  /// **'Star on GitHub'**
-  String get starPromptStar;
-
-  /// No description provided for @starPromptLater.
-  ///
-  /// In en, this message translates to:
-  /// **'Maybe Later'**
-  String get starPromptLater;
 
   /// No description provided for @cmdResetFeatureTips.
   ///

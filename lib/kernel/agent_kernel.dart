@@ -57,6 +57,7 @@ class KernelContext {
     this.resume,
     this.settings = const {},
     this.workspace,
+    this.environment = const {},
   });
 
   /// The project directory.
@@ -72,6 +73,10 @@ class KernelContext {
   /// Initial choices by [KernelChoiceKind] name, e.g. the permission mode
   /// new agents start in.
   final Map<String, String> settings;
+
+  /// Variables its process starts with besides the user's: what the app's
+  /// own commands, run by the agent, know it by.
+  final Map<String, String> environment;
 }
 
 // --- Capabilities -----------------------------------------------------------
@@ -159,6 +164,12 @@ abstract interface class ModelSetting {
 /// the one last picked with any (its name): `effort@<model>`.
 String modelSettingKey(KernelChoiceKind kind, String model) =>
     '${kind.name}@$model';
+
+/// The key a choice of [kind] made on the kernel [kernelId] is kept under,
+/// for a kernel other than the first (whose are under the kind's name):
+/// `pi:model`. Its models and levels are not the first's to start on.
+String kernelSettingKey(String kernelId, KernelChoiceKind kind) =>
+    '$kernelId:${kind.name}';
 
 /// How much the model thinks before it answers.
 abstract interface class SelectsEffort {

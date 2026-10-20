@@ -123,6 +123,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cmdChatNewAgent => 'New Chat';
 
   @override
+  String get cmdChatSplitPane => 'Split Pane';
+
+  @override
+  String get cmdChatSplitPaneDown => 'Split Pane Down';
+
+  @override
   String get cmdChatClosePane => 'Close Pane';
 
   @override
@@ -2546,14 +2552,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get turnSpeedHint => 'Average output speed';
+  String get turnSpeedHint =>
+      'Actual output tokens / total model request time (includes waiting and thinking; excludes local tools)';
 
   @override
   String get turnOutputTokensHint => 'Written so far this turn';
 
   @override
   String get turnSpeedLiveHint =>
-      'Output speed, sampled over the last 2 seconds';
+      'Average TPS of completed model requests, updated when actual usage arrives';
 
   @override
   String get turnDurationHint => 'Time this turn took';
@@ -5133,6 +5140,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String editorEditLanguage(String language) {
     return 'Edit $language…';
   }
+
+  @override
+  String get workspaceSplitPane => 'Split pane: a new agent beside this one';
+
+  @override
+  String get chatRailNoText => '(no text)';
 
   @override
   String get workspaceClosePane => 'Close pane';
@@ -7803,22 +7816,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cmdShowSetupGuide => 'Show Setup Guide';
-
-  @override
-  String get cmdStarOnGitHub => 'Star BaoCode on GitHub';
-
-  @override
-  String get starPromptMessage => 'Enjoying BaoCode?';
-
-  @override
-  String get starPromptDetail =>
-      'BaoCode is free and open source. If it helps you, a star on GitHub helps other people find it.';
-
-  @override
-  String get starPromptStar => 'Star on GitHub';
-
-  @override
-  String get starPromptLater => 'Maybe Later';
 
   @override
   String get cmdResetFeatureTips => 'Reset Feature Tips';

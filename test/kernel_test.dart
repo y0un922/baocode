@@ -965,6 +965,273 @@ void main() {
     });
   });
 
+  group('Claude Code request TPS', () {
+    late ClaudeTranslator translator;
+    late List<OutputReported> reports;
+    var seq = 0;
+
+    void stream(Map<String, Object?> event) =>
+        translator.translate({'type': 'stream_event', 'event': event});
+    void requesting({String? parent}) => translator.translate({
+      'type': 'system',
+      'subtype': 'status',
+      'status': 'requesting',
+      'parent_tool_use_id': parent,
+    });
+    void start(String id) => stream({
+      'type': 'message_start',
+      'message': {
+        'id': id,
+        'usage': {'input_tokens': 10, 'output_tokens': 1},
+      },
+    });
+    void finish(int? tokens) {
+      if (tokens != null) {
+        stream({
+          'type': 'message_delta',
+          'usage': {
+            'output_tokens': tokens,
+            'output_tokens_details': {'thinking_tokens': tokens - 1},
+          },
+        });
+      }
+      stream({'type': 'message_stop'});
+    }
+
+    void tool(String id, String name, {String? parent}) =>
+        translator.translate({
+          'type': 'assistant',
+          'parent_tool_use_id': parent,
+          'message': {
+            'id': 'm-$id',
+            'content': [
+              {
+                'type': 'tool_use',
+                'id': id,
+                'name': name,
+                'input': name == 'Write'
+                    ? {
+                        'file_path': '/tmp/.claude/plans/test.md',
+                        'content': 'Plan',
+                      }
+                    : <String, Object?>{},
+              },
+            ],
+          },
+        });
+    void result(String id, {String? parent, Object? structured}) =>
+        translator.translate({
+          'type': 'user',
+          'parent_tool_use_id': parent,
+          'message': {
+            'content': [
+              {'type': 'tool_result', 'tool_use_id': id, 'content': 'ok'},
+            ],
+          },
+          'tool_use_result': structured,
+        });
+    Future<void> wait(int ms) =>
+        Future<void>.delayed(Duration(milliseconds: ms));
+    void expectDuration(int tokens, Stopwatch requests) {
+      final speed = reports.last.output.tokensPerSecond;
+      expect(speed, isNotNull);
+      expect(
+        tokens / speed!,
+        closeTo(requests.elapsedMicroseconds / 1e6, 0.025),
+        reason: 'actual output divided by complete primary request time',
+      );
+      expect(translator.turnUsage?.tokensPerSecond, speed);
+    }
+
+    setUp(() {
+      reports = [];
+      seq = 0;
+      translator = ClaudeTranslator(
+        emit: (event) {
+          if (event is OutputReported) reports.add(event);
+        },
+        nextSeq: () => ++seq,
+      )..begin();
+    });
+
+    test(
+      'includes TTFT and thinking, excludes setup, rates subsecond output',
+      () async {
+        await wait(100); // CLI startup, not model time.
+        final requests = Stopwatch()..start();
+        requesting(); // begin() already reports waiting; still start the meter.
+        await wait(80);
+        start('m1');
+        stream({
+          'type': 'content_block_start',
+          'index': 0,
+          'content_block': {'type': 'thinking'},
+        });
+        await wait(80);
+        stream({
+          'type': 'content_block_delta',
+          'index': 0,
+          'delta': {'type': 'thinking_delta', 'thinking': 'abcdef'},
+        });
+        expect(reports.last.output.tokens, 2);
+        expect(reports.last.output.tokensPerSecond, isNull);
+        stream({'type': 'content_block_stop', 'index': 0});
+        stream({
+          'type': 'content_block_start',
+          'index': 1,
+          'content_block': {'type': 'text'},
+        });
+        await wait(20);
+        stream({
+          'type': 'content_block_delta',
+          'index': 1,
+          'delta': {'type': 'text_delta', 'text': 'Hi.'},
+        });
+        finish(120);
+        requests.stop();
+        expect(reports.last.output.tokens, 120);
+        expectDuration(120, requests);
+      },
+    );
+
+    test(
+      'unknown usage estimates counts, never speed or its denominator',
+      () async {
+        requesting();
+        start('unknown');
+        await wait(100);
+        stream({
+          'type': 'content_block_delta',
+          'index': 0,
+          'delta': {'type': 'text_delta', 'text': 'abcdef'},
+        });
+        finish(null);
+        expect(reports.last.output.tokens, 2);
+        expect(reports.last.output.tokensPerSecond, isNull);
+        final requests = Stopwatch()..start();
+        requesting();
+        start('known');
+        await wait(40);
+        finish(10);
+        requests.stop();
+        expect(reports.last.output.tokens, 12);
+        expectDuration(10, requests);
+      },
+    );
+
+    test(
+      'requesting, not the preceding tool result, resumes modern streams',
+      () async {
+        final requests = Stopwatch()..start();
+        requesting();
+        start('m1');
+        tool('bash', 'Bash');
+        await wait(40);
+        finish(60);
+        requests.stop();
+        await wait(80);
+        result('bash');
+        await wait(80); // Hooks/setup after tools, before the next request.
+        requests.start();
+        requesting();
+        await wait(60);
+        start('m2');
+        await wait(20);
+        finish(40);
+        requests.stop();
+        expectDuration(100, requests);
+      },
+    );
+
+    test(
+      'legacy streams retain first TTFT and wait for all primary calls',
+      () async {
+        final requests = Stopwatch()..start();
+        await wait(80);
+        start('m1');
+        tool('outer', 'Agent');
+        tool('plan', 'Write'); // Specialized calls must also block the meter.
+        stream({
+          'type': 'content_block_start',
+          'index': 0,
+          'content_block': {'type': 'tool_use', 'id': 'early', 'name': 'Bash'},
+        });
+        tool('early', 'Bash'); // Whole message updates the streamed call.
+        tool('child', 'Read', parent: 'outer');
+        result('early'); // Results can precede message_stop.
+        await wait(60); // Model still streaming arguments: never pause here.
+        finish(60);
+        requests.stop();
+        result('child', parent: 'outer');
+        // A child's status is not a primary request.
+        requesting(parent: 'outer');
+        await wait(80);
+        result('outer');
+        await wait(80); // The parallel plan write is still running.
+        requests.start();
+        result('plan');
+        await wait(60); // Legacy fallback includes the next request's TTFT.
+        start('m2');
+        await wait(20);
+        finish(40);
+        requests.stop();
+        expectDuration(100, requests);
+      },
+    );
+
+    test(
+      'background launch unblocks without waiting for its child to finish',
+      () async {
+        start('m1');
+        final requests = Stopwatch()..start();
+        tool('outer', 'Agent');
+        tool('child', 'Read', parent: 'outer');
+        await wait(40);
+        finish(60);
+        requests.stop();
+        await wait(80);
+        requests.start();
+        result(
+          'outer',
+          structured: {'status': 'async_launched', 'agentId': 'a1'},
+        );
+        await wait(60);
+        start('m2');
+        result('child', parent: 'outer');
+        await wait(20);
+        finish(40);
+        requests.stop();
+        expectDuration(100, requests);
+      },
+    );
+
+    test(
+      'settling and beginning a new turn clears old primary calls',
+      () async {
+        requesting();
+        start('old');
+        tool('old-tool', 'Bash');
+        translator.settle();
+        translator.begin();
+        start('new');
+        final requests = Stopwatch()..start();
+        tool('new-tool', 'Bash');
+        await wait(40);
+        finish(60);
+        requests.stop();
+        await wait(80);
+        requests.start();
+        result('new-tool');
+        await wait(40);
+        start('last');
+        finish(40);
+        requests.stop();
+        expect(reports.last.output.tokens, 100);
+        expectDuration(100, requests);
+      },
+    );
+  });
+
   group('Claude Code kernel', () {
     test('a turn is timed as the CLI says it took', () async {
       final cli = FakeCli();
@@ -1085,8 +1352,8 @@ void main() {
         expect(usage.inputTokens, 2020);
         expect(usage.outputTokens, 100);
         expect(usage.costUsd, closeTo(0.25, 1e-9));
-        // Its messages too short to time.
-        expect(usage.tokensPerSecond, isNull);
+        // Even subsecond requests count; aggregate API time is not used.
+        expect(usage.tokensPerSecond, greaterThan(100));
         expect(transcript.output, isNull);
         expect(transcript.turnStartedAt, isNull);
         kernel.dispose();
@@ -4989,7 +5256,11 @@ exec /usr/bin/env "\$@"
 
     setUp(() {
       server = _FakeServer();
-      kernel = CodexKernel(MockKernels.codex, server);
+      kernel = CodexKernel(
+        MockKernels.codex,
+        const KernelContext(cwd: '/project'),
+        start: (_, {environment = const {}}) async => server,
+      );
       events = [];
       kernel.events.listen(events.add);
     });
@@ -5003,14 +5274,11 @@ exec /usr/bin/env "\$@"
       kernel.mode.select('ask');
       kernel.send(const KernelTurn(id: 't1', text: 'hi'));
       await pumpEventQueue();
-      expect(server.written.map((m) => m['method']), [
-        'initialize',
-        'thread/start',
-        'turn/start',
-      ]);
-      final turnStart = server.written.last['params'] as Map;
-      expect(turnStart['sandboxPolicy'], {'type': 'readOnly'});
-      expect(turnStart['model'], 'gpt-5.5');
+      Map<Object?, Object?> request(String method) =>
+          server.written.lastWhere((m) => m['method'] == method)['params']
+              as Map;
+      expect(request('thread/start')['sandbox'], 'read-only');
+      expect(request('turn/start')['model'], 'gpt-5.5');
 
       notify('item/completed', {
         'item': {
@@ -5028,6 +5296,7 @@ exec /usr/bin/env "\$@"
         'item': {
           'type': 'fileChange',
           'id': 'f',
+          'status': 'completed',
           'changes': [
             {'path': 'lib/a.dart', 'diff': '@@ -3 +3 @@\n a\n-b\n+c'},
           ],
@@ -5038,27 +5307,31 @@ exec /usr/bin/env "\$@"
         'method': 'item/commandExecution/requestApproval',
         'params': {'command': 'flutter test'},
       });
+      await pumpEventQueue();
       final approval =
           events.whereType<InteractionRequested>().single.request
               as ApprovalRequest;
       expect((approval.preview as CommandPreview).command, 'flutter test');
       kernel
         ..answer(
-          'approval:7',
+          approval.id,
           const ApprovalAnswer(ApprovalDecision.allowAlways),
         )
-        ..answer('approval:7', const ApprovalAnswer(ApprovalDecision.deny));
-      final replies = server.written.where((m) => m['id'] == 7).toList();
+        ..answer(approval.id, const ApprovalAnswer(ApprovalDecision.deny));
+      final replies = server.written
+          .where((m) => m['id'] == 7 && !m.containsKey('method'))
+          .toList();
       expect(replies.single['result'], {'decision': 'acceptForSession'});
 
       notify('turn/completed', {
         'turn': {'id': 'st1', 'status': 'completed'},
       });
-      expect(events.last, isA<TurnEnded>());
+      await pumpEventQueue();
+      expect(events.whereType<TurnEnded>(), hasLength(1));
       final edited = events.whereType<FileEdited>().single;
       expect(
         (edited.change.path, edited.change.added, edited.change.removed),
-        ('lib/a.dart', 1, 1),
+        ('/project/lib/a.dart', 1, 1),
       );
       // What it was, by the patch taken back out.
       expect(
@@ -5074,6 +5347,7 @@ exec /usr/bin/env "\$@"
         'item': {
           'type': 'fileChange',
           'id': 'f',
+          'status': 'completed',
           'changes': [
             {
               'path': 'new.txt',
@@ -5106,6 +5380,7 @@ exec /usr/bin/env "\$@"
           'status': 'inProgress',
         },
       });
+      await pumpEventQueue();
       final running = events.whereType<ItemUpserted>().last.item;
       expect((running as TerminalItem).status, CommandStatus.running);
 
@@ -5116,13 +5391,14 @@ exec /usr/bin/env "\$@"
           .item;
       expect((stopped as TerminalItem).status, CommandStatus.failed);
       expect(stopped.command, 'sleep 9');
-      expect(events.last, isA<TurnEnded>());
+      expect(events.whereType<TurnEnded>(), hasLength(1));
     });
 
     test('declares no background tasks and no undo', () {
       expect(kernel, isNot(isA<RunsBackgroundTasks>()));
       expect(kernel, isNot(isA<RevertsChanges>()));
       expect(kernel, isA<SelectsMode>());
+      expect(kernel, isA<SelectsPermission>());
     });
   });
 }
@@ -5141,6 +5417,7 @@ class _FakeServer implements CodexTransport {
   @override
   void write(Map<String, Object?> message) {
     written.add(message);
+    if (message['id'] == null) return;
     final result = switch (message['method']) {
       'thread/start' => {
         'thread': {'id': 'th'},

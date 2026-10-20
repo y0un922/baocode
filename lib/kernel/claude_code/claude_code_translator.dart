@@ -71,12 +71,13 @@ class ClaudeTranslator {
   DateTime? _blockSince;
 
   /// The current message's usage, as its start and its last delta said;
-  /// whether its delta counted what it wrote, and its thought's tokens;
-  /// whether it thought.
+  /// whether its delta supplied the final output count.
   Map<String, Object?> _messageUsage = {};
   bool _messageCounted = false;
-  int? _messageThinking;
-  bool _messageThought = false;
+  bool _messageActive = false;
+  bool _firstRequest = true;
+  bool _hasRequestStatus = false;
+  final Set<String> _pendingPrimaryTools = {};
 
   /// The turn's requests so far (the agent's own, not its subagents'):
   /// tokens read and written.
@@ -399,6 +400,9 @@ class ClaudeTranslator {
   void settle() {
     // A message cut off: what it had used still counts.
     if (_messageUsage.isNotEmpty) _endMessage();
+    _messageActive = false;
+    _pendingPrimaryTools.clear();
+    _meter.pause();
     for (final id in [..._thoughts.keys]) {
       _completeThought(id, null);
     }
@@ -459,19 +463,15 @@ class ClaudeTranslator {
         _blockSince = DateTime.now();
         _messageUsage = {..._map(message['usage'])};
         _messageCounted = false;
-        _messageThinking = null;
-        _messageThought = false;
-        _meter.startMessage();
+        _messageActive = true;
+        _firstRequest = false;
+        if (!replaying) _meter.resume();
       case 'message_delta':
         final usage = _map(event['usage']);
         for (final MapEntry(:key, :value) in usage.entries) {
           if (value is num) _messageUsage[key] = value;
         }
         if (usage['output_tokens'] is num) _messageCounted = true;
-        if (_map(usage['output_tokens_details'])['thinking_tokens']
-            case final num tokens) {
-          _messageThinking = tokens.toInt();
-        }
       case 'message_stop':
         _endMessage();
       case 'content_block_start':
@@ -480,7 +480,6 @@ class ClaudeTranslator {
         final id = '$_messageId:$index';
         switch (block['type']) {
           case 'thinking' || 'redacted_thinking':
-            _messageThought = true;
             _streamed[index] = id;
             (_unclaimed['$_messageId:thinking'] ??= []).add(id);
             _thoughts[id] = StringBuffer();
@@ -496,14 +495,11 @@ class ClaudeTranslator {
               streaming: true,
             );
           case 'text':
-            if (!replaying) _meter.startBlock();
             _streamed[index] = id;
             (_unclaimed['$_messageId:text'] ??= []).add(id);
             _textLength[id] = 0;
             _put(id, const AssistantTextItem(''), streaming: true);
           case 'tool_use':
-            // Its input may come all at once as it ends: timed from here.
-            if (!replaying) _meter.startBlock();
             final toolId = block['id'] as String;
             final name = block['name'] as String;
             if (!_tools.containsKey(toolId)) {
@@ -565,7 +561,7 @@ class ClaudeTranslator {
       case {'type': 'input_json_delta', 'partial_json': final String json}:
         _meter.streamed(json);
       case {'type': 'thinking_delta', 'thinking': final String thought}:
-        _meter.streamed(thought, timed: false);
+        _meter.streamed(thought);
       default:
         return;
     }
@@ -591,35 +587,31 @@ class ClaudeTranslator {
         count('cache_creation_input_tokens') +
         count('cache_read_input_tokens');
     _turnOutput += output;
-    _meter.endMessage(
-      // Cut off before its count: as guessed.
-      tokens: _messageCounted ? output : null,
-      // Its text's and calls', told apart from its thoughts'.
-      written: switch (_messageThinking) {
-        final thinking? => output - thinking,
-        null when !_messageThought => output,
-        null => null,
-      },
-    );
+    _meter.endMessage(tokens: _messageCounted ? output : null);
+    _messageActive = false;
+    _meter.pause();
+    // Older CLIs have no requesting status: all tool results mean ready.
+    if (!_hasRequestStatus && _pendingPrimaryTools.isEmpty) _meter.resume();
     _messageUsage = {};
     _messageCounted = false;
-    _messageThinking = null;
-    _messageThought = false;
     _reportOutput();
   }
 
   void _resetUsage() {
     _messageUsage = {};
     _messageCounted = false;
-    _messageThinking = null;
-    _messageThought = false;
+    _messageActive = false;
+    _firstRequest = true;
+    _hasRequestStatus = false;
+    _pendingPrimaryTools.clear();
     _turnInput = _turnOutput = 0;
+    // shortcut: without requesting status, startup is included to retain TTFT.
     _meter.begin();
     _outputReported = null;
   }
 
   /// What the turn's requests spent, as streamed; null when none streamed.
-  /// Its speed the average of that shown while it wrote.
+  /// Its speed uses completed primary requests, including waiting and thinking.
   TurnUsage? get turnUsage => _turnInput == 0 && _turnOutput == 0
       ? null
       : TurnUsage(
@@ -858,6 +850,9 @@ class ClaudeTranslator {
       known?.startedAt,
     );
     _tools[id] = tool;
+    if (known == null && !replaying && tool.parent == null) {
+      _pendingPrimaryTools.add(id);
+    }
     if (tool.parent == null && _isPlanCall(name, input)) {
       return _planCall(id, name, input);
     }
@@ -1162,6 +1157,12 @@ class ClaudeTranslator {
     final tool = id == null ? null : _tools[id];
     if (id == null || tool == null) return;
     _unanswered.remove(id);
+    if (_pendingPrimaryTools.remove(id) &&
+        _pendingPrimaryTools.isEmpty &&
+        !_messageActive &&
+        !_hasRequestStatus) {
+      _meter.resume();
+    }
     final error = block['is_error'] == true;
     final text = _resultText(block['content']);
     final structured = result is Map ? result.cast<String, Object?>() : null;
@@ -1464,9 +1465,15 @@ class ClaudeTranslator {
       // conversation is being compacted (until the status clears).
       case 'status':
         switch (message['status']) {
-          // Still waiting since the turn was sent: keep its clock.
-          case 'requesting' when _activity?.kind != KernelActivityKind.waiting:
-            _report(_waiting());
+          case 'requesting':
+            if (!replaying && message['parent_tool_use_id'] == null) {
+              if (_firstRequest && !_hasRequestStatus) _meter.begin();
+              _hasRequestStatus = true;
+              _meter.resume();
+            }
+            if (_activity?.kind != KernelActivityKind.waiting) {
+              _report(_waiting());
+            }
           case 'compacting':
             _report(
               KernelActivity(KernelActivityKind.compacting, DateTime.now()),

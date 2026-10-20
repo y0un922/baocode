@@ -122,6 +122,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cmdChatNewAgent => '新对话';
 
   @override
+  String get cmdChatSplitPane => '拆分窗格';
+
+  @override
+  String get cmdChatSplitPaneDown => '向下拆分窗格';
+
+  @override
   String get cmdChatClosePane => '关闭窗格';
 
   @override
@@ -2463,13 +2469,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get turnSpeedHint => '平均输出速度';
+  String get turnSpeedHint => '实际输出 token ÷ 模型请求总耗时（含等待和思考，不含本地工具耗时）';
 
   @override
   String get turnOutputTokensHint => '本轮已输出';
 
   @override
-  String get turnSpeedLiveHint => '输出速度（最近 2 秒采样）';
+  String get turnSpeedLiveHint => '已完成模型请求的平均 TPS，收到实际用量后更新';
 
   @override
   String get turnDurationHint => '本轮耗时';
@@ -4803,6 +4809,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String editorEditLanguage(String language) {
     return '编辑 $language…';
   }
+
+  @override
+  String get workspaceSplitPane => '拆分窗格：在旁边开一个新会话';
+
+  @override
+  String get chatRailNoText => '（无文字）';
 
   @override
   String get workspaceClosePane => '关闭窗格';
@@ -7347,22 +7359,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cmdShowSetupGuide => '显示设置向导';
-
-  @override
-  String get cmdStarOnGitHub => '在 GitHub 上为 BaoCode 点 Star';
-
-  @override
-  String get starPromptMessage => 'BaoCode 用得还顺手吗？';
-
-  @override
-  String get starPromptDetail =>
-      'BaoCode 免费开源。如果它对你有帮助，欢迎在 GitHub 上点个 Star，让更多人发现它。';
-
-  @override
-  String get starPromptStar => '去 GitHub 点 Star';
-
-  @override
-  String get starPromptLater => '以后再说';
 
   @override
   String get cmdResetFeatureTips => '重置功能推荐';

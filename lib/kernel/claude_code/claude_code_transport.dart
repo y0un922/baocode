@@ -64,7 +64,12 @@ class ClaudeLaunch {
     this.models = const [],
     this.sdkServers = const [],
     this.promptSuggestions = true,
+    this.variables = const {},
   });
+
+  /// Variables its process starts with besides the user's: the agent's
+  /// own, as its kernel context gives them.
+  final Map<String, String> variables;
 
   /// Whether it suggests the next prompt after each turn
   /// (`--prompt-suggestions`), each a request of its own.
@@ -171,6 +176,7 @@ class ClaudeLaunch {
     instructions: instructions,
     models: models,
     promptSuggestions: promptSuggestions,
+    variables: variables,
   );
 
   Map<String, String>? get _attribution => switch (attribution) {

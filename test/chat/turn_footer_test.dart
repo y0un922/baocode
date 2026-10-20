@@ -104,6 +104,28 @@ void main() {
     expect(find.text('50.00 tok/s'), findsOneWidget);
   });
 
+  testWidgets('TPS waits for usage, then shows even on a short turn', (
+    tester,
+  ) async {
+    await _pump(tester, const TurnFooter(live: TurnOutput(tokens: 30)));
+    expect(find.byType(RollingText), findsOneWidget);
+
+    await _pump(
+      tester,
+      const TurnFooter(live: TurnOutput(tokens: 30, tokensPerSecond: 150)),
+    );
+    expect(find.byType(RollingText), findsNWidgets(2));
+
+    await _pump(
+      tester,
+      const TurnFooter(
+        worked: Duration(milliseconds: 200),
+        usage: TurnUsage(outputTokens: 30, tokensPerSecond: 150),
+      ),
+    );
+    expect(find.text('150.00 tok/s'), findsOneWidget);
+  });
+
   testWidgets('a finished turn\'s time comes first, its tokens last', (
     tester,
   ) async {

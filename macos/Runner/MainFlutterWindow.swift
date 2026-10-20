@@ -107,6 +107,34 @@ class BaoWindow: NSWindow {
     }
   }
 
+  override func sendEvent(_ event: NSEvent) {
+    super.sendEvent(eventForContent(event))
+  }
+
+  /// Flutter recognizes double clicks itself; AppKit must not also zoom
+  /// the window when the same clicks land on its title-bar controls.
+  func eventForContent(_ event: NSEvent) -> NSEvent {
+    guard (event.type == .leftMouseDown || event.type == .leftMouseUp),
+          event.clickCount > 1,
+          let content = contentView,
+          let frame = content.superview,
+          let target = frame.hitTest(frame.convert(event.locationInWindow, from: nil)),
+          target === content || target.isDescendant(of: content)
+    else { return event }
+
+    return NSEvent.mouseEvent(
+      with: event.type,
+      location: event.locationInWindow,
+      modifierFlags: event.modifierFlags,
+      timestamp: event.timestamp,
+      windowNumber: event.windowNumber,
+      context: nil,
+      eventNumber: event.eventNumber,
+      clickCount: 1,
+      pressure: event.pressure
+    ) ?? event
+  }
+
   /// How much lower than AppKit puts them the traffic lights are kept, so
   /// they stay level with the title bar Flutter draws as the interface is
   /// zoomed (see setTitleBarDrop), as VS Code's Electron moves them

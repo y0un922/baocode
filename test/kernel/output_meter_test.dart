@@ -12,160 +12,202 @@ void main() {
 
   void after(int ms) => now = now.add(Duration(milliseconds: ms));
 
-  /// [chunks] of 30 ASCII characters (10 tokens guessed), one every [every]
-  /// milliseconds.
-  void stream(int chunks, {int every = 100}) {
-    for (var i = 0; i < chunks; i++) {
-      after(every);
-      meter.streamed('a' * 30);
-    }
-  }
-
-  test('guesses tokens from the text, Han heavier than ASCII', () {
+  test('estimates the displayed count, not the speed', () {
     expect(OutputMeter.estimateTokens('a' * 30), 10);
     expect(OutputMeter.estimateTokens('秋天' * 5), closeTo(13, 1e-9));
-  });
-
-  test('no speed before it has written for a while', () {
-    stream(5);
-    expect(meter.output.tokens, 50);
-    expect(meter.output.tokensPerSecond, isNull);
-  });
-
-  test('the speed it writes at, not the burst it began with', () {
-    // What the upstream held back, all at once, then 100 tokens a second.
+    after(2000);
     meter.streamed('a' * 3000);
-    stream(30);
-    expect(meter.output.tokensPerSecond, closeTo(100, 1e-6));
-    expect(meter.output.tokens, 1300);
+    expect(meter.output.tokens, 1000);
+    expect(meter.output.tokensPerSecond, isNull);
+    expect(meter.averageSpeed, isNull);
   });
 
-  test('deltas close together all along are timed each', () {
-    // A burst of what was held back, then a delta every 20ms.
-    for (var i = 0; i < 5; i++) {
-      after(2);
-      meter.streamed('a' * 300);
-    }
-    stream(150, every: 20);
-    expect(meter.output.tokensPerSecond, closeTo(500, 1e-6));
+  test('actual output over full request time, including first-token wait', () {
+    after(12000);
+    meter.streamed('a' * 300);
+    after(8000);
+    meter.endMessage(tokens: 1000);
+    expect(meter.output.tokens, 1000);
+    expect(meter.output.tokensPerSecond, 50);
+    expect(meter.averageSpeed, 50);
   });
 
-  test('deltas read off in batches are timed by the batch', () {
-    for (var batch = 0; batch < 30; batch++) {
-      after(100);
-      for (var i = 0; i < 4; i++) {
-        meter.streamed('a' * 30);
-      }
-    }
-    expect(meter.output.tokensPerSecond, closeTo(400, 1e-6));
-  });
-
-  test('follows the pace as it changes', () {
-    stream(30);
-    stream(60, every: 50);
-    expect(meter.output.tokensPerSecond, closeTo(200, 1e-6));
-  });
-
-  test('the last sample between messages; the counts replace the '
-      'guesses', () {
-    stream(20);
-    meter.endMessage(tokens: 300, written: 200);
-    expect(meter.output.tokensPerSecond, closeTo(100, 1e-6));
-    expect(meter.output.tokens, 300);
-    meter.startMessage();
-    // Guessed 200 for 200 written: the guess stands.
-    stream(5);
-    expect(meter.output.tokens, 350);
-    // Too short to sample yet: the last sample.
-    expect(meter.output.tokensPerSecond, closeTo(100, 1e-6));
-  });
-
-  test('short messages, a wait between each, are timed all together', () {
-    // Half a second of 100 a second each: none sampled alone.
-    for (var i = 0; i < 4; i++) {
-      meter.startMessage();
-      stream(6);
-      meter.endMessage(tokens: 60);
-      after(3000);
-    }
-    expect(meter.output.tokensPerSecond, closeTo(100, 1e-6));
-    expect(meter.averageSpeed, closeTo(100, 1e-6));
-  });
-
-  test('a tool call\'s input all at once as it ends: timed from the '
-      'call\'s start, after a thought', () {
-    meter.startMessage();
-    // A thought for a second, untimed.
-    for (var i = 0; i < 10; i++) {
-      after(100);
-      meter.streamed('a' * 30, timed: false);
-    }
-    meter.startBlock();
+  test('all actual output counts, including reasoning and tool inputs', () {
+    after(4000);
+    meter.streamed('a short thought');
     after(1000);
-    // 100 tokens of input, written over that second.
-    meter.streamed('a' * 300);
-    // The next call's, with its start, at once.
-    after(5);
-    meter.startBlock();
-    meter.streamed('a' * 300);
-    meter.endMessage(tokens: 300);
-    expect(meter.output.tokensPerSecond, closeTo(200 / 1.005, 1e-6));
+    meter.streamed('tiny visible answer');
+    meter.endMessage(tokens: 1000);
+    expect(meter.output.tokens, 1000);
+    expect(meter.averageSpeed, 200);
   });
 
-  test('a block held back, its start and deltas at once: not timed', () {
-    meter.startMessage();
-    after(3000);
-    meter.startBlock();
+  test('prefers the SDK request duration over delayed event delivery', () {
+    after(60000);
+    meter.endMessage(tokens: 1000, duration: const Duration(seconds: 20));
+    expect(meter.averageSpeed, 50);
+    after(60000);
+    meter.endMessage(tokens: 500, duration: const Duration(seconds: 10));
+    expect(meter.output.tokens, 1500);
+    expect(meter.averageSpeed, 50);
+  });
+
+  test('an invalid SDK duration does not fall back to a made-up speed', () {
+    after(2000);
+    meter.endMessage(tokens: 100, duration: Duration.zero);
+    expect(meter.averageSpeed, isNull);
+    after(2000);
+    meter.endMessage(tokens: 100, duration: const Duration(seconds: -1));
+    expect(meter.averageSpeed, isNull);
+  });
+
+  test('a buffered response needs no deltas to measure its actual usage', () {
+    after(2000);
+    meter.endMessage(tokens: 300);
+    expect(meter.output.tokens, 300);
+    expect(meter.averageSpeed, 150);
+  });
+
+  test('counts a burst instead of dropping its first 50 milliseconds', () {
     meter.streamed('a' * 3000);
     after(10);
     meter.streamed('a' * 3000);
+    after(1990);
     meter.endMessage(tokens: 2000);
-    expect(meter.output.tokensPerSecond, isNull);
+    expect(meter.averageSpeed, 1000);
   });
 
-  test('the last sample, not the average, after a faster message', () {
-    stream(21);
-    meter.endMessage(tokens: 210);
-    meter.startMessage();
-    stream(41, every: 50);
-    meter.endMessage(tokens: 410);
-    expect(meter.output.tokensPerSecond, closeTo(200, 1));
-    expect(meter.averageSpeed, closeTo(150, 1));
-  });
-
-  test('guesses as the counts went', () {
-    stream(20);
-    // Twice what it guessed.
-    meter.endMessage(tokens: 400, written: 400);
-    stream(20);
-    expect(meter.output.tokens, 800);
-    expect(meter.output.tokensPerSecond, closeTo(200, 1e-6));
-  });
-
-  test("thoughts are counted, not timed", () {
-    after(100);
-    meter.streamed('a' * 300, timed: false);
-    after(2000);
-    meter.streamed('a' * 300, timed: false);
-    expect(meter.output.tokens, 200);
-    expect(meter.output.tokensPerSecond, isNull);
-  });
-
-  test('averages the tokens timed over the time written, the waits left '
-      'out', () {
-    expect(meter.averageSpeed, isNull);
-    // 100 a second for 2s, and then, after a wait, 200 for 2s.
-    stream(21);
-    meter.endMessage(tokens: 210);
-    after(5000);
-    meter.startMessage();
-    stream(41, every: 50);
-    meter.endMessage(tokens: 410);
-    expect(meter.averageSpeed, closeTo(150, 1));
-    // A turn of messages too short to time has none.
-    meter.begin();
-    stream(3);
+  test('does not hide a valid response shorter than one second', () {
+    after(200);
     meter.endMessage(tokens: 30);
+    expect(meter.averageSpeed, 150);
+  });
+
+  test('includes time between the last delta and the completed usage', () {
+    after(1000);
+    meter.streamed('abc');
+    after(3000);
+    meter.endMessage(tokens: 200);
+    expect(meter.averageSpeed, 50);
+  });
+
+  test('excludes tool execution even if usage arrives after the tool', () {
+    after(2000);
+    meter.pause();
+    after(120000);
+    meter.resume();
+    after(1000);
+    meter.endMessage(tokens: 300);
+    expect(meter.averageSpeed, 100);
+  });
+
+  test('sums matched tokens and request durations across a turn', () {
+    after(500);
+    meter.endMessage(tokens: 50);
+    meter.pause();
+    after(30000);
+    meter.resume();
+    after(1500);
+    meter.endMessage(tokens: 75);
+    expect(meter.output.tokens, 125);
+    expect(meter.averageSpeed, 62.5);
+  });
+
+  test('usage received while tools run does not restart the clock', () {
+    after(1000);
+    meter.pause();
+    after(10000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, 100);
+    after(10000);
+    meter.resume();
+    after(1000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, 100);
+  });
+
+  test('pause and resume are idempotent', () {
+    after(1000);
+    meter.pause();
+    after(10000);
+    meter.pause();
+    after(10000);
+    meter.resume();
+    after(1000);
+    meter.resume();
+    after(1000);
+    meter.endMessage(tokens: 300);
+    expect(meter.averageSpeed, 100);
+  });
+
+  test('keeps the completed speed while the next request is pending', () {
+    after(1000);
+    meter.endMessage(tokens: 100);
+    after(5000);
+    meter.streamed('a' * 30);
+    expect(meter.output.tokens, 110);
+    expect(meter.output.tokensPerSecond, 100);
+    meter.pause();
+    after(60000);
+    expect(meter.averageSpeed, 100);
+  });
+
+  test('missing usage can keep a count but never invents a speed', () {
+    after(5000);
+    meter.streamed('a' * 300);
+    meter.endMessage();
+    expect(meter.output.tokens, 100);
     expect(meter.averageSpeed, isNull);
+    after(1000);
+    meter.endMessage(tokens: 50);
+    expect(meter.output.tokens, 150);
+    expect(meter.averageSpeed, 50);
+  });
+
+  test('zero output keeps its request time; negative usage is ignored', () {
+    after(1000);
+    meter.endMessage(tokens: 0);
+    expect(meter.averageSpeed, isNull);
+    after(1000);
+    meter.endMessage(tokens: -10);
+    expect(meter.output.tokens, 0);
+    expect(meter.averageSpeed, isNull);
+    after(1000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, 50);
+  });
+
+  test('an empty request still contributes to the turn total duration', () {
+    after(10000);
+    meter.endMessage(tokens: 0);
+    expect(meter.averageSpeed, isNull);
+    after(1000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, closeTo(100 / 11, 1e-9));
+  });
+
+  test('zero or negative elapsed time cannot contribute a speed', () {
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, isNull);
+    after(-1000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, isNull);
+    after(1000);
+    meter.endMessage(tokens: 50);
+    expect(meter.output.tokens, 250);
+    expect(meter.averageSpeed, 50);
+  });
+
+  test('a new turn clears counts, speed, pauses and elapsed time', () {
+    after(1000);
+    meter.endMessage(tokens: 100);
+    meter.pause();
+    after(30000);
+    meter.begin();
+    expect(meter.output.tokens, 0);
+    expect(meter.averageSpeed, isNull);
+    after(2000);
+    meter.endMessage(tokens: 100);
+    expect(meter.averageSpeed, 50);
   });
 }

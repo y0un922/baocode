@@ -99,7 +99,7 @@ class AgentThread {
   final SessionRecord? record;
 
   final KernelDescriptor _kernel;
-  final ChatSession Function() _open;
+  final ChatSession Function(AgentThread thread) _open;
   ChatSession? _session;
   void Function(AgentThread thread)? _onOpened;
 
@@ -107,7 +107,7 @@ class AgentThread {
   ChatSession get session {
     final session = _session;
     if (session != null) return session;
-    final opened = _session = _open();
+    final opened = _session = _open(this);
     _onOpened?.call(this);
     return opened;
   }
@@ -285,6 +285,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   /// agent in the most recent project.
   Future<void> load() async {
     _loading = true;
+    _projectsFold = true;
     notifyListeners();
     unawaited(icons.load());
     await (_restoring = _restore());
@@ -512,7 +513,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
         updatedAt: session.updatedAt,
         pinned: _pinned.contains(id),
         archived: _archived.contains(id),
-        open: () => ChatSession(
+        open: (thread) => ChatSession(
           kernel: kernel,
           kernels: kernels,
           kernelContext: KernelContext(
@@ -521,6 +522,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
             // As it was left, or as a new agent starts.
             settings: {..._preferredSettings, ...?_agentSettings[session.id]},
             workspace: () => _kernelWorkspace(session.cwd),
+            environment: _environmentOf(thread),
           ),
           historyCount: 0,
         ),
@@ -568,7 +570,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
         AgentThread._(
           project: project,
           kernel: descriptor,
-          open: () => session,
+          open: (_) => session,
           title: title,
           updatedAt: now.subtract(age),
           pinned: pinned,
@@ -1077,13 +1079,25 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     notifyListeners();
   }
 
-  /// Whether the sidebar group [group] (by key) is folded.
-  bool isCollapsed(String group) => _collapsedGroups.contains(group);
+  /// Whether the sidebar group [group] (by key) is folded. Once [load]ed,
+  /// a project's is at each launch, until opened.
+  bool isCollapsed(String group) => _foldsProjects(group)
+      ? !_openedProjects.contains(group)
+      : _collapsedGroups.contains(group);
   final Set<String> _collapsedGroups = {};
+  final Set<String> _openedProjects = {};
+  bool _projectsFold = false;
+
+  bool _foldsProjects(String group) =>
+      _projectsFold && group.startsWith(projectGroup(''));
 
   void toggleCollapsed(String group) {
-    if (!_collapsedGroups.remove(group)) _collapsedGroups.add(group);
-    _save();
+    if (_foldsProjects(group)) {
+      if (!_openedProjects.remove(group)) _openedProjects.add(group);
+    } else {
+      if (!_collapsedGroups.remove(group)) _collapsedGroups.add(group);
+      _save();
+    }
     notifyListeners();
   }
 
@@ -2229,7 +2243,10 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       }
       void remember(KernelChoiceKind kind, String? was, String? now) {
         if (now != null && was != null && now != was) {
-          _settings[kind.name] = now;
+          _settings[thread.kernel == kernels.first
+                  ? kind.name
+                  : kernelSettingKey(thread.kernel.id, kind)] =
+              now;
           changed = true;
         }
       }
@@ -2429,14 +2446,45 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   }
 
   /// Shows [thread] in the half of [target]'s pane on its [side], and
-  /// focuses it; where it shows already, only focuses it. Nothing where
-  /// [target]'s pane cannot be split that way (see [ChatGrid.canSplit]).
-  void openBeside(AgentThread thread, AgentThread target, PaneSide side) {
+  /// focuses it (unless not to [focus]); where it shows already, only
+  /// focuses it. Nothing where [target]'s pane cannot be split that way
+  /// (see [ChatGrid.canSplit]).
+  void openBeside(
+    AgentThread thread,
+    AgentThread target,
+    PaneSide side, {
+    bool focus = true,
+  }) {
     if (!_grid.contains(thread)) {
       if (!_grid.canSplit(target, side)) return;
       _grid.split(target, side, thread);
     }
-    select(thread);
+    if (focus) {
+      select(thread);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Where [target]'s pane splits for a new agent: at its right, or (no
+  /// room there) below; [down], below first. Null where it cannot either
+  /// way.
+  PaneSide? splitSide(AgentThread target, {bool down = false}) =>
+      (down
+              ? const [PaneSide.bottom, PaneSide.right]
+              : const [PaneSide.right, PaneSide.bottom])
+          .where((side) => _grid.canSplit(target, side))
+          .firstOrNull;
+
+  /// Opens a new agent in [target]'s project in half of its pane (see
+  /// [splitSide]), focused; an untouched new one there that does not show
+  /// is reused. Null where the pane cannot split.
+  AgentThread? splitPane(AgentThread target, {bool down = false}) {
+    final side = splitSide(target, down: down);
+    if (side == null) return null;
+    final thread = startAgent(target.project);
+    openBeside(thread, target, side);
+    return thread;
   }
 
   /// Shows [thread] in [target]'s pane, and focuses it; where it shows
@@ -2499,26 +2547,62 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     return thread;
   }
 
-  /// A new, empty agent in [project], listed here but not shown.
-  AgentThread _newThread(Project project) {
-    final kernel = _preferredKernel;
-    final settings = {
+  /// A new agent of [kernel] in [project] that another agent starts (see
+  /// AgentHost): listed, not shown, the window left as it is. [settings]
+  /// go over those a new agent starts with, by [KernelChoiceKind].
+  AgentThread startWorker(
+    Project project,
+    KernelDescriptor kernel,
+    Map<KernelChoiceKind, String> settings,
+  ) {
+    final thread = _newThread(
+      project,
+      kernel: kernel,
+      settings: {
+        for (final MapEntry(:key, :value) in settings.entries)
+          kernel == kernels.first ? key.name : kernelSettingKey(kernel.id, key):
+              value,
+      },
+    );
+    notifyListeners();
+    return thread;
+  }
+
+  /// The variables each agent's process starts with besides the user's,
+  /// by agent (see AgentHost); none without.
+  Map<String, String> Function(AgentThread thread)? agentEnvironment;
+
+  Map<String, String> _environmentOf(AgentThread thread) =>
+      agentEnvironment?.call(thread) ?? const {};
+
+  /// A new, empty agent in [project], listed here but not shown: on the
+  /// kernel new agents start on, unless another [kernel]; [settings] over
+  /// what they start with.
+  AgentThread _newThread(
+    Project project, {
+    KernelDescriptor? kernel,
+    Map<String, String> settings = const {},
+  }) {
+    kernel ??= _preferredKernel;
+    settings = {
       ..._preferredSettings,
       // Settings → Models' pick, if any, over the last one.
       KernelChoiceKind.model.name: ?ModelProviders.current.defaultModel,
+      ...settings,
     };
     final cwd = project.path;
     final thread = AgentThread._(
       project: project,
       kernel: kernel,
       updatedAt: DateTime.now(),
-      open: () => ChatSession(
+      open: (thread) => ChatSession(
         kernel: kernel,
         kernels: kernels,
         kernelContext: KernelContext(
           cwd: cwd,
           settings: settings,
           workspace: () => _kernelWorkspace(cwd),
+          environment: _environmentOf(thread),
         ),
         historyCount: 0,
       ),
@@ -2553,7 +2637,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
       record: record,
       title: title,
       updatedAt: record.updatedAt,
-      open: () => ChatSession(
+      open: (thread) => ChatSession(
         kernel: kernel,
         kernels: kernels,
         kernelContext: KernelContext(
@@ -2561,6 +2645,7 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
           resume: record,
           settings: {..._preferredSettings, ...?_agentSettings[record.id]},
           workspace: () => _kernelWorkspace(record.cwd),
+          environment: _environmentOf(thread),
         ),
         historyCount: 0,
       ),

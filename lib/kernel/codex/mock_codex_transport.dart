@@ -24,6 +24,22 @@ class MockCodexTransport implements CodexTransport {
 
   Object? _run;
   String? _turnId;
+  bool _readOnly = false;
+
+  static Map<String, Object?> _model(String id, String name, String about) => {
+    'id': id,
+    'model': id,
+    'displayName': name,
+    'description': about,
+    'hidden': false,
+    'supportedReasoningEfforts': [
+      for (final effort in const ['low', 'medium', 'high'])
+        {'reasoningEffort': effort, 'description': ''},
+    ],
+    'defaultReasoningEffort': 'medium',
+    'inputModalities': const ['text', 'image'],
+    'isDefault': id == 'gpt-5.5-codex',
+  };
   final Map<String, Completer<String>> _approvals = {};
 
   void _emit(Map<String, Object?> message) {
@@ -50,13 +66,36 @@ class MockCodexTransport implements CodexTransport {
     switch (method) {
       case 'initialize':
         _respond(id, {'userAgent': 'codex-mock'});
-      case 'thread/start':
+      case 'model/list':
         _respond(id, {
-          'thread': {'id': _threadId},
+          'data': [
+            _model('gpt-5.5-codex', 'GPT-5.5 Codex', 'Tuned for coding'),
+            _model('gpt-5.5', 'GPT-5.5', 'General purpose'),
+            _model('gpt-5.5-mini', 'GPT-5.5 mini', 'Fastest'),
+          ],
+          'nextCursor': null,
         });
-      case 'thread/rollback':
+      case 'skills/list':
+        _respond(id, {'data': const <Object?>[]});
+      case 'account/rateLimits/read':
         _respond(id, {
-          'thread': {'id': _threadId},
+          'rateLimits': {
+            'primary': {
+              'usedPercent': 12,
+              'windowDurationMins': 300,
+              'resetsAt': null,
+            },
+            'secondary': {
+              'usedPercent': 30,
+              'windowDurationMins': 10080,
+              'resetsAt': null,
+            },
+          },
+        });
+      case 'thread/start':
+        _readOnly = params['sandbox'] == 'read-only';
+        _respond(id, {
+          'thread': {'id': _threadId, 'path': null},
         });
       case 'turn/start':
         final turnId = 'turn_${++_turns}';
@@ -64,8 +103,10 @@ class MockCodexTransport implements CodexTransport {
           'turn': {'id': turnId, 'status': 'inProgress'},
         });
         final input = (params['input'] as List).first as Map;
-        final readOnly =
-            (params['sandboxPolicy'] as Map?)?['type'] == 'readOnly';
+        if (params['sandboxPolicy'] case {'type': final type}) {
+          _readOnly = type == 'readOnly';
+        }
+        final readOnly = _readOnly;
         final run = Object();
         _run = run;
         _turnId = turnId;
@@ -77,6 +118,9 @@ class MockCodexTransport implements CodexTransport {
           _approvals.clear();
           _completeTurn(turnId, 'interrupted');
         }
+      default:
+        // Taken, and nothing more to say.
+        if (id != null) _respond(id, {});
     }
   }
 

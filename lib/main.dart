@@ -113,6 +113,8 @@ import 'workspace/agent_title.dart';
 import 'workspace/main_window.dart';
 import 'workspace/preference_store.dart';
 import 'workspace/window_controls.dart';
+import 'workspace/agent_host.dart';
+import 'workspace/agent_server.dart';
 import 'workspace/workspace.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -269,7 +271,17 @@ Future<void> main(List<String> arguments) async {
     titler: claudeAgentTitle,
     l10n: () =>
         lookupAppLocalizations(locale.locale ?? AppLocale.systemLocale()),
-  )..load();
+  );
+  // The agents' command (`baocode-agent`), to start others beside them:
+  // its address goes in each agent's process, so it listens before any
+  // starts.
+  if (!kIsWeb) {
+    await serveAgents(
+      AgentHost(workspace),
+      directory: p.join(DataDirectory.current.cacheDir, 'agent'),
+    );
+  }
+  unawaited(workspace.load());
   // Claude Code's skills, agents, commands, rules, servers, hooks and
   // plugins: the Customize view beside the chat, and Settings → Customize.
   final customizations = CustomizationStore();

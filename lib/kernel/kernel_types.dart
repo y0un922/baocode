@@ -242,10 +242,14 @@ class McpServer {
     this.scope,
     this.version,
     this.tools = const [],
+    this.toggles = true,
   });
 
   final String name;
   final McpServerStatus status;
+
+  /// Whether it can be turned off and on: not one built into the agent.
+  final bool toggles;
 
   /// Why it failed.
   final String? error;

@@ -198,18 +198,20 @@ class _ServerRow extends StatelessWidget {
             ),
           ),
           if (action != null) ...[const SizedBox(width: 8), action],
-          const SizedBox(width: 8),
-          IdeHover(
-            message: server.status == McpServerStatus.disabled
-                ? l10n.mcpEnable
-                : l10n.mcpDisable,
-            child: IdeSwitch(
-              value: server.status != McpServerStatus.disabled,
-              enabled: server.status != McpServerStatus.pending,
-              semanticLabel: server.name,
-              onChanged: onSetEnabled,
+          if (server.toggles) ...[
+            const SizedBox(width: 8),
+            IdeHover(
+              message: server.status == McpServerStatus.disabled
+                  ? l10n.mcpEnable
+                  : l10n.mcpDisable,
+              child: IdeSwitch(
+                value: server.status != McpServerStatus.disabled,
+                enabled: server.status != McpServerStatus.pending,
+                semanticLabel: server.name,
+                onChanged: onSetEnabled,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

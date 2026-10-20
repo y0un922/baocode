@@ -685,6 +685,23 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('projects open folded each run, until opened', (tester) async {
+    final store = MemoryPreferenceStore();
+    var workspace = await pumpLoaded(tester, preferences: store);
+    final group = Workspace.projectGroup(workspace.projects.first.path);
+    expect(workspace.isCollapsed(group), isTrue);
+    workspace.toggleCollapsed(group);
+    expect(workspace.isCollapsed(group), isFalse);
+    workspace.toggleCollapsed(group);
+    expect(workspace.isCollapsed(group), isTrue);
+    workspace.toggleCollapsed(group);
+
+    // Left open: folded again the next run.
+    await tester.pumpWidget(const SizedBox());
+    workspace = await pumpLoaded(tester, preferences: store);
+    expect(workspace.isCollapsed(group), isTrue);
+  });
+
   testWidgets('marks are dropped with the sessions gone, not when the '
       'catalog could not be read', (tester) async {
     final store = MemoryPreferenceStore({
@@ -752,6 +769,9 @@ void main() {
     await tester.runAsync(workspace.refresh);
     await tester.pump();
     expect(workspace.threads.length, before + 2);
+    // Two projects now: theirs fold until opened.
+    workspace.toggleCollapsed(Workspace.projectGroup('/tmp/project'));
+    await tester.pump();
     expect(
       inSidebar(find.text('Started in a terminal (terminal-1)')),
       findsOneWidget,
@@ -904,6 +924,43 @@ void main() {
       expect(workspace.grid.at(1), same(panes.last));
       expect(workspace.selected, same(panes.last));
       expect(workspace.grid.columnRatio, .3);
+    });
+
+    testWidgets('a pane splits for a new agent in its project, at its right '
+        'or else below', (tester) async {
+      final workspace = await pumpLoaded(tester);
+      final kept = workspace.threads.firstWhere(
+        (thread) => thread.record?.id == FakeCatalog.kept.id,
+      );
+      workspace.select(kept);
+
+      final right = workspace.splitPane(kept)!;
+      expect(right.record, isNull);
+      expect(right.project, kept.project);
+      expect(workspace.grid.cells, [kept, right, kept, right]);
+      expect(workspace.selected, same(right));
+
+      final below = workspace.splitPane(kept)!;
+      expect(below, isNot(same(right)));
+      expect(workspace.grid.cells, [kept, right, below, right]);
+      final last = workspace.splitPane(right)!;
+      expect(workspace.grid.cells, [kept, right, below, last]);
+      // Four is all there is room for.
+      expect(workspace.splitSide(kept), isNull);
+      expect(workspace.splitPane(kept), isNull);
+    });
+
+    testWidgets('split down, below first, else at its right', (tester) async {
+      final workspace = await pumpLoaded(tester);
+      final kept = workspace.threads.firstWhere(
+        (thread) => thread.record?.id == FakeCatalog.kept.id,
+      );
+      workspace.select(kept);
+
+      final below = workspace.splitPane(kept, down: true)!;
+      expect(workspace.grid.cells, [kept, kept, below, below]);
+      final right = workspace.splitPane(kept, down: true)!;
+      expect(workspace.grid.cells, [kept, right, below, below]);
     });
 
     testWidgets("an agent that is no more leaves its pane to the others", (

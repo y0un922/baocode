@@ -30,6 +30,7 @@ import 'steadiness.dart';
 import 'step_folds.dart';
 import 'user_message_style.dart';
 import 'widgets/chat_item_view.dart';
+import 'widgets/chat_message_rail.dart';
 import 'widgets/chat_minimap.dart';
 import 'widgets/edge_fade_mask.dart';
 import 'widgets/content_image.dart' show ChatImage, ChatImages;
@@ -46,6 +47,7 @@ class ChatHistoryView extends StatefulWidget {
     required this.feed,
     this.maxContentWidth = 760,
     this.minimap = false,
+    this.messageRail = false,
     this.onOpenAgent,
     this.onSetGoal,
     this.onFindClosed,
@@ -58,6 +60,10 @@ class ChatHistoryView extends StatefulWidget {
   /// Whether a minimap of it shows in the margin left of its column, when
   /// there is room for one (see [ChatMinimap]).
   final bool minimap;
+
+  /// Whether the user's messages are listed down its right edge, a dash
+  /// each (see [ChatMessageRail]).
+  final bool messageRail;
 
   /// Opens a subagent's own conversation, from its card.
   final ValueChanged<AgentItem>? onOpenAgent;
@@ -432,7 +438,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
   /// The press went to a sticky copy of a message, over the list.
   bool _pressOnSticky = false;
 
-  /// The press went to the minimap, beside the list.
+  /// The press went to the minimap, or the messages' rail, beside the list.
   bool _pressOnMinimap = false;
 
   /// Where a drag on the list's text began, to check what it selected.
@@ -2057,22 +2063,9 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
   /// down each the view's edge is. Read every frame of a scroll (by the
   /// minimap, as it paints): from where the list laid them out, along it.
   ChatMinimapSpan? _spanInView() {
-    var sliver = _sliver;
-    if (sliver == null || !sliver.attached) sliver = _sliver = _findSliver();
-    if (sliver == null || sliver.geometry == null) return null;
+    final (sliver, lead) = _laidOut() ?? (null, 0.0);
+    if (sliver == null) return null;
     final view = sliver.constraints.viewportMainAxisExtent;
-    // Where the sliver paints from in the view: its padding's and its own
-    // offsets.
-    var lead = 0.0;
-    for (
-      RenderObject? node = sliver;
-      node is RenderSliver;
-      node = node.parent
-    ) {
-      if (node.parentData case final SliverPhysicalParentData data) {
-        lead += data.paintOffset.dy;
-      }
-    }
     final count = _feed.itemCount;
     int? first;
     int? last;
@@ -2098,6 +2091,94 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
     if (first == null || last == null) return null;
     return (first: first, firstAt: firstAt, last: last, lastAt: lastAt);
   }
+
+  /// The list's sliver, laid out, and where it paints from in the view (its
+  /// padding's and its own offsets); null when it is not.
+  (RenderSliverMultiBoxAdaptor, double)? _laidOut() {
+    var sliver = _sliver;
+    if (sliver == null || !sliver.attached) sliver = _sliver = _findSliver();
+    if (sliver == null || sliver.geometry == null) return null;
+    var lead = 0.0;
+    for (
+      RenderObject? node = sliver;
+      node is RenderSliver;
+      node = node.parent
+    ) {
+      if (node.parentData case final SliverPhysicalParentData data) {
+        lead += data.paintOffset.dy;
+      }
+    }
+    return (sliver, lead);
+  }
+
+  /// The row at the middle of the view, or the last above it, as laid out;
+  /// null when none is.
+  int? _rowAtMiddle() {
+    final (sliver, lead) = _laidOut() ?? (null, 0.0);
+    if (sliver == null) return null;
+    final middle = sliver.constraints.viewportMainAxisExtent / 2;
+    final count = _feed.itemCount;
+    int? at;
+    for (var item = sliver.firstChild; item != null;) {
+      final index = _indexOf(item);
+      if (index < count && item.hasSize && item.size.height > 0) {
+        if (lead + sliver.childMainAxisPosition(item) > middle) break;
+        at = index;
+      }
+      item = sliver.childAfter(item);
+    }
+    return at;
+  }
+
+  /// The rows of the user's messages, for their rail.
+  List<int> _railRows() => [
+    for (var index = 0; index < _feed.itemCount; index++)
+      if (_feed.itemAt(index) case UserMessageItem(queued: false)) index,
+  ];
+
+  /// What the rail lists of the message at [row]: its first line.
+  String _railLabel(int row) => switch (_feed.itemAt(row)) {
+    UserMessageItem(:final text) => switch (ChatMessageRail.labelOf(text)) {
+      '' => context.l10n.chatRailNoText,
+      final label => label,
+    },
+    _ => '',
+  };
+
+  /// The rail of the messages at [rows], in the margin right of the column: clear of what
+  /// floats at the right of the chat, and of the scrollbar while it shows.
+  /// None where the margin has no room for it.
+  Widget _messageRail(List<int> rows) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final column = _columnIn(width);
+      final edge = _inset + (_minimapShown ? 0 : _scrollbarGutter / 2);
+      final room = width - column.left - column.width - edge;
+      if (room < ChatMessageRail.width / 2) return const SizedBox.shrink();
+      return Stack(
+        children: [
+          Positioned(
+            top: 0,
+            bottom: 0,
+            right: edge + math.max(0.0, (room - ChatMessageRail.width) / 2),
+            child: ChatMessageRail(
+              rows: rows,
+              labelAt: _railLabel,
+              current: _rowAtMiddle,
+              moved: Listenable.merge([_scrollController, _editorMoved]),
+              scrolling: () => _scrollController.hasClients && _userScrolling,
+              onPick: (index) => _seek(index, 0),
+              onPointerDown: (_) => _pressOnMinimap = true,
+              onPointerSignal: _wheelList,
+              onPointerPanZoomStart: _startForwardedPan,
+              onPointerPanZoomUpdate: _panList,
+              onPointerPanZoomEnd: _endForwardedPan,
+            ),
+          ),
+        ],
+      );
+    },
+  );
 
   /// The file link the last right click pressed on (see [_contextMenu]).
   ChatItemMenu? _linkMenu;
@@ -2240,6 +2321,9 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
 
   Widget _buildHistory(BuildContext context) {
     final outerBars = ScrollbarTheme.of(context);
+    final railRows = widget.messageRail && (_contentAbove || _contentBelow)
+        ? _railRows()
+        : const <int>[];
     return Shortcuts(
       shortcuts: _selectionShortcuts,
       // Sees every press and wheel event, the scrollbar's too.
@@ -2427,6 +2511,8 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
                       onPointerPanZoomEnd: _endForwardedPan,
                     ),
                   ),
+                if (railRows.length >= ChatMessageRail.minMessages)
+                  Positioned.fill(child: _messageRail(railRows)),
                 // Over the history's top right, as the editor's.
                 Positioned(
                   top: 0,

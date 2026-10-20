@@ -13,6 +13,7 @@ import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
 import '../stash/stash_actions.dart';
 import '../stash/stash_store.dart';
 import '../theme/app_theme.dart';
+import '../workspace/editor_launcher.dart' show openExternal;
 import '../workspace/title_bar_double_click.dart';
 import 'agent_view.dart';
 import 'chat_column.dart';
@@ -32,6 +33,7 @@ import 'panels/health_banner.dart';
 import 'panels/interaction_panel.dart';
 import 'panels/context_usage_panel.dart';
 import 'panels/goal_panel.dart';
+import 'panels/mcp_servers_panel.dart';
 import 'panels/queue_panel.dart';
 import 'panels/todo_panel.dart';
 import 'side_panel/file_link.dart';
@@ -349,6 +351,16 @@ class _ChatScreenState extends State<ChatScreen>
     if (_contextPanelOpen) _session.refreshUsage();
   }
 
+  /// Opens the page where the user signs in to [server], if there is one.
+  Future<void> _signIn(McpServer server) async {
+    try {
+      final page = await _session.authenticateMcpServer(server);
+      if (page != null) await openExternal(page.toString());
+    } on Object {
+      _session.refreshMcpServers();
+    }
+  }
+
   void _answer(InteractionAnswer answer) {
     _session.answer(answer);
     _composerKey.currentState?.focus();
@@ -467,7 +479,8 @@ class _ChatScreenState extends State<ChatScreen>
         delegate: _TitleBarLayout(
           inset: inset,
           maxWidth: _maxContentWidth,
-          minimap: _minimap,
+          // Align with the composer, which leaves no minimap gutter.
+          minimap: false,
         ),
         children: [
           if (widget.leading case final leading?)
@@ -708,6 +721,7 @@ class _ChatScreenState extends State<ChatScreen>
                         feed: _session,
                         maxContentWidth: _maxContentWidth,
                         minimap: _minimap,
+                        messageRail: !widget.embedded,
                         onOpenAgent: _openAgent,
                         onSetGoal: _setGoal,
                         onFindClosed: () => _composerKey.currentState?.focus(),
@@ -880,6 +894,19 @@ class _ChatScreenState extends State<ChatScreen>
               usage: usage,
               stats: _session.stats,
               onClose: _toggleContextPanel,
+            ),
+            _ => null,
+          },
+        ),
+        _PanelSlot(
+          child: switch (_session.mcpServers) {
+            final servers? when _session.mcpServersShown => McpServersPanel(
+              servers: servers,
+              onClose: _session.hideMcpServers,
+              onRefresh: _session.refreshMcpServers,
+              onSetEnabled: _session.setMcpServerEnabled,
+              onReconnect: _session.reconnectMcpServer,
+              onSignIn: _signIn,
             ),
             _ => null,
           },

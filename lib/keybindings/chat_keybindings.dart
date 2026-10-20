@@ -47,6 +47,12 @@ abstract final class ChatCommandIds {
   // The window's: its agents and panes.
   static const newChat = 'workbench.action.chat.newChat';
   static const closePane = 'baocode.chat.closePane';
+
+  /// A new agent in half of the focused pane, as the editors' Split Editor.
+  static const splitPane = 'baocode.chat.splitPane';
+
+  /// As [splitPane], its lower half first.
+  static const splitPaneDown = 'baocode.chat.splitPaneDown';
   static const nextAgent = 'baocode.chat.nextAgent';
   static const previousAgent = 'baocode.chat.previousAgent';
 
@@ -183,6 +189,8 @@ final List<CommandInfo> chatExtraCommands = [
   for (final (id, title) in [
     (ChatCommandIds.newChat, 'New Chat'),
     (ChatCommandIds.closePane, 'Close Pane'),
+    (ChatCommandIds.splitPane, 'Split Pane'),
+    (ChatCommandIds.splitPaneDown, 'Split Pane Down'),
     (ChatCommandIds.nextAgent, 'Open Next Agent'),
     (ChatCommandIds.previousAgent, 'Open Previous Agent'),
     for (var i = 1; i <= ChatCommandIds.agentIndexes; i++)
@@ -295,6 +303,19 @@ final List<KeybindingEntry> chatExtraKeybindings = [
     key: 'ctrl+w',
     mac: 'cmd+w',
     command: ChatCommandIds.closePane,
+    when: _window,
+  ),
+  // As the editors' Split Editor.
+  const KeybindingEntry(
+    key: 'ctrl+\\',
+    mac: 'cmd+\\',
+    command: ChatCommandIds.splitPane,
+    when: _window,
+  ),
+  const KeybindingEntry(
+    key: 'ctrl+-',
+    mac: 'cmd+-',
+    command: ChatCommandIds.splitPaneDown,
     when: _window,
   ),
   // From the side panel, as Close Editor: its tab in front, not the pane.

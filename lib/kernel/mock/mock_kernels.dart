@@ -26,7 +26,11 @@ abstract final class MockKernels {
     label: 'Codex',
     icon: Icons.data_object_rounded,
     description: 'OpenAI’s coding agent',
-    create: (_) => CodexKernel(codex, MockCodexTransport()),
+    create: (context) => CodexKernel(
+      codex,
+      context,
+      start: (_, {environment = const {}}) async => MockCodexTransport(),
+    ),
   );
 
   static final List<KernelDescriptor> all = [claudeCode, codex];

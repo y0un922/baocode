@@ -83,7 +83,8 @@ SessionRecord kept(String id, String cwd, int minutesAgo) => SessionRecord(
   cwd: cwd,
 );
 
-/// The app over the sessions [catalog] keeps, loaded.
+/// The app over the sessions [catalog] keeps, loaded, its projects opened
+/// (they launch folded).
 Future<Workspace> pumpKept(
   WidgetTester tester,
   KeptCatalog catalog, {
@@ -105,6 +106,9 @@ Future<Workspace> pumpKept(
   final workspace = Workspace(kernels: [claude], preferences: preferences);
   await tester.pumpWidget(BaoCodeApp(workspace: workspace));
   await tester.runAsync(workspace.load);
+  for (final project in workspace.projects) {
+    workspace.toggleCollapsed(Workspace.projectGroup(project.path));
+  }
   await tester.pump();
   return workspace;
 }
@@ -811,7 +815,8 @@ void main() {
       find.descendant(
         of: row,
         matching: find.byWidgetPredicate(
-          (widget) => widget is Positioned && widget.left == 0 && widget.width == 2,
+          (widget) =>
+              widget is Positioned && widget.left == 0 && widget.width == 2,
         ),
       ),
       findsNothing,

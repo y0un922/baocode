@@ -550,6 +550,7 @@ class ClaudeCodeKernel
           thinking: custom != null && direct && effort == 'none' ? false : null,
           autocompact: _autocompact,
           promptSuggestions: _launchedSuggestions,
+          variables: _context.environment,
           attribution: CommitAttribution.current(),
           env: env,
           directories: workspace?.folders ?? const [],

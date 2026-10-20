@@ -44,10 +44,6 @@ const showSetupGuideCommandId = 'baocode.tips.showSetupGuide';
 /// and their notifications showing again as at a first launch.
 const resetFeatureTipsCommandId = 'baocode.tips.reset';
 
-/// Star BaoCode on GitHub: the ask StarPrompt makes after the first
-/// conversations, any time.
-const starOnGitHubCommandId = 'baocode.starOnGitHub';
-
 /// Connect Your Browser…: what the agents do with the user's browser, and
 /// its extension to get (showBrowserWelcome), as after the update.
 const browserWelcomeCommandId = 'baocode.browser.welcome';
@@ -158,11 +154,6 @@ final Map<String, CommandInfo> commandCatalog = {
     const CommandInfo(
       resetFeatureTipsCommandId,
       'Reset Feature Tips',
-      category: 'Help',
-    ),
-    const CommandInfo(
-      starOnGitHubCommandId,
-      'Star BaoCode on GitHub',
       category: 'Help',
     ),
     const CommandInfo(

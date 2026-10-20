@@ -44,7 +44,6 @@ String localizedCommandLabel(AppLocalizations l10n, String id, String english) {
     checkForUpdatesCommandId => l10n.cmdCheckForUpdates,
     showSetupGuideCommandId => l10n.cmdShowSetupGuide,
     resetFeatureTipsCommandId => l10n.cmdResetFeatureTips,
-    starOnGitHubCommandId => l10n.cmdStarOnGitHub,
     browserWelcomeCommandId => l10n.cmdBrowserWelcome,
     stashWelcomeCommandId => l10n.cmdStashWelcome,
     modelWelcomeCommandId => l10n.cmdModelWelcome,
@@ -112,6 +111,8 @@ String localizedCommandLabel(AppLocalizations l10n, String id, String english) {
     // The chat's (chatExtraCommands).
     ChatCommandIds.newChat => l10n.cmdChatNewAgent,
     ChatCommandIds.closePane => l10n.cmdChatClosePane,
+    ChatCommandIds.splitPane => l10n.cmdChatSplitPane,
+    ChatCommandIds.splitPaneDown => l10n.cmdChatSplitPaneDown,
     ChatCommandIds.nextAgent => l10n.cmdChatNextAgent,
     ChatCommandIds.previousAgent => l10n.cmdChatPreviousAgent,
     final String agent

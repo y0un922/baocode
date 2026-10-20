@@ -9,6 +9,10 @@ import 'package:baocode/l10n/command_titles.dart';
 import 'package:baocode/l10n/l10n.dart';
 
 void main() {
+  test('the removed GitHub star prompt has no command entry', () {
+    expect(commandCatalog, isNot(contains('baocode.starOnGitHub')));
+  });
+
   test('the chat\'s commands are in the catalog, under Chat', () {
     for (final info in chatExtraCommands) {
       expect(commandCatalog[info.id]?.label, 'Chat: ${info.title}');
@@ -62,6 +66,10 @@ void main() {
     expect(windows(ChatCommandIds.newChat), 'Ctrl+N');
     expect(mac(ChatCommandIds.closePane), '⌘W');
     expect(windows(ChatCommandIds.closePane), 'Ctrl+W');
+    expect(mac(ChatCommandIds.splitPane), '⌘\\');
+    expect(windows(ChatCommandIds.splitPane), 'Ctrl+\\');
+    expect(mac(ChatCommandIds.splitPaneDown), '⌘-');
+    expect(windows(ChatCommandIds.splitPaneDown), 'Ctrl+-');
     expect(mac(ChatCommandIds.nextAgent), '⇧⌘]');
     expect(linux(ChatCommandIds.nextAgent), 'Ctrl+PageDown');
     expect(mac(ChatCommandIds.previousAgent), '⇧⌘[');
