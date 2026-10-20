@@ -13,6 +13,7 @@ import '../../kernel/agent_kernel.dart';
 import '../../kernel/kernel_types.dart';
 import '../../keybindings/chat_keybindings.dart';
 import '../../l10n/l10n.dart';
+import '../../platform/quill_focus.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/workbench_theme.dart' show WorkbenchColors, themeColors;
 import '../chat_keys.dart';
@@ -706,6 +707,7 @@ class ChatComposerState extends State<ChatComposer>
 
   void _handleFocusChanged() {
     if (!_focusNode.hasFocus) _closeMenu();
+    releaseQuillFocus(_editorKey);
     setState(() {});
   }
 
