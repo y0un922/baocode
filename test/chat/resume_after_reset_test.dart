@@ -170,6 +170,24 @@ void main() {
     expect(resumes.entries, isEmpty);
   });
 
+  testWidgets('the computer asleep past the reset: it goes on as it wakes', (
+    tester,
+  ) async {
+    final resumed = <String>[];
+    final resumes = make()
+      ..resume = (id) async {
+        resumed.add(id);
+        return true;
+      };
+    hit(resumes, 'a');
+    resumes.setScheduled('a', true);
+    // The clock moved on two hours; the timers, as asleep, hardly.
+    now = now.add(const Duration(hours: 2));
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+    expect(resumed, ['a']);
+  });
+
   test('a reset said that is past is nothing to wait for', () {
     final resumes = make();
     hit(resumes, 'a', after: -_hour);

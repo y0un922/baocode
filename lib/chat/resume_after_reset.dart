@@ -303,8 +303,19 @@ class ResumeAfterReset extends ChangeNotifier {
     }
     if (next == null) return;
     final wait = next.difference(_clock());
-    _timer = Timer(wait.isNegative ? Duration.zero : wait, _fire);
+    // Looked at again a minute on at most: a timer does not count the time
+    // the computer slept, the clock does.
+    _timer = Timer(
+      wait.isNegative
+          ? Duration.zero
+          : wait < _recheck
+          ? wait
+          : _recheck,
+      _fire,
+    );
   }
+
+  static const _recheck = Duration(minutes: 1);
 
   Future<void> _fire() async {
     _timer = null;
