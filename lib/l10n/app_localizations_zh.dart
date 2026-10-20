@@ -8273,6 +8273,66 @@ class AppLocalizationsZh extends AppLocalizations {
       '运行中在回复下方实时显示本轮耗时、输出速度和已输出的 token。一轮结束后的统计始终显示';
 
   @override
+  String usageLimitHit(String time) {
+    return '已达到用量上限，$time 重置';
+  }
+
+  @override
+  String get usageLimitAsk => '重置后自动继续这个任务？';
+
+  @override
+  String get usageLimitContinueAfterReset => '重置后继续';
+
+  @override
+  String usageLimitScheduled(String time) {
+    return '将在 $time 重置后自动继续';
+  }
+
+  @override
+  String get usageLimitUndo => '撤销';
+
+  @override
+  String get usageLimitDeclined =>
+      '这个任务不会自动继续。如果改变主意，可以在 设置 → 模型 → Claude Code → 重置后继续 中开启';
+
+  @override
+  String get usageLimitOpenSettings => '打开设置';
+
+  @override
+  String usageLimitTomorrow(String time) {
+    return '明天 $time';
+  }
+
+  @override
+  String get resumeAfterResetPrompt => '用量已重置，请从中断的地方继续。';
+
+  @override
+  String get resumeSettingsTitle => '重置后继续';
+
+  @override
+  String get resumeSettingsDescription =>
+      '使用 Claude 订阅时，任务因用量上限中断后，可以在额度重置后自动继续';
+
+  @override
+  String get resumeSettingsAuto => '总是自动继续';
+
+  @override
+  String get resumeSettingsAutoDescription => '不再在输入框上方询问，碰到上限的任务都在重置后自动继续';
+
+  @override
+  String get resumeSettingsEmpty => '目前没有等待额度重置的任务';
+
+  @override
+  String resumeSettingsEntry(String project, String time) {
+    return '$project · $time 重置';
+  }
+
+  @override
+  String resumeSettingsOpen(String title) {
+    return '打开 $title';
+  }
+
+  @override
   String stashPolishFailed(String error) {
     return '没能润色：$error';
   }

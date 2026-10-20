@@ -169,7 +169,9 @@ void main() {
     expect(providers.builtinHidden, isTrue);
     await tester.tap(find.text("Claude Code (this machine's setup)"));
     await tester.pump();
-    // No page of its own to open, nor delete.
+    // Its own page has what is the plan's alone: no connection, nothing to
+    // delete.
+    expect(find.text('Continue After Limit Reset'), findsOneWidget);
     expect(find.text('Connection'), findsNothing);
   });
 

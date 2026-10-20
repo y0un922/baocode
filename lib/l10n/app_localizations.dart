@@ -14247,6 +14247,102 @@ abstract class AppLocalizations {
   /// **'While the agent works, a line under the reply with how long the turn has taken, how fast the model writes and the tokens so far, changing as it goes. The figures under a finished turn always show.'**
   String get generalSettingsLiveTurnStatsDescription;
 
+  /// No description provided for @usageLimitHit.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage limit reached · resets {time}'**
+  String usageLimitHit(String time);
+
+  /// No description provided for @usageLimitAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue this task automatically once it resets?'**
+  String get usageLimitAsk;
+
+  /// No description provided for @usageLimitContinueAfterReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue After Reset'**
+  String get usageLimitContinueAfterReset;
+
+  /// No description provided for @usageLimitScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Continues automatically after the reset at {time}'**
+  String usageLimitScheduled(String time);
+
+  /// No description provided for @usageLimitUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get usageLimitUndo;
+
+  /// No description provided for @usageLimitDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'This task won\'t continue by itself. Changed your mind? Turn it on in Settings → Models → Claude Code → Continue After Limit Reset.'**
+  String get usageLimitDeclined;
+
+  /// No description provided for @usageLimitOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get usageLimitOpenSettings;
+
+  /// No description provided for @usageLimitTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'tomorrow {time}'**
+  String usageLimitTomorrow(String time);
+
+  /// No description provided for @resumeAfterResetPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'The usage limit has reset. Continue where you left off.'**
+  String get resumeAfterResetPrompt;
+
+  /// No description provided for @resumeSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue After Limit Reset'**
+  String get resumeSettingsTitle;
+
+  /// No description provided for @resumeSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When a task on your Claude plan stops at the usage limit, it can continue by itself once the limit resets.'**
+  String get resumeSettingsDescription;
+
+  /// No description provided for @resumeSettingsAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Always Continue Automatically'**
+  String get resumeSettingsAuto;
+
+  /// No description provided for @resumeSettingsAutoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t ask above the composer: every task that stops at the limit continues once it resets.'**
+  String get resumeSettingsAutoDescription;
+
+  /// No description provided for @resumeSettingsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No task is waiting for the limit to reset.'**
+  String get resumeSettingsEmpty;
+
+  /// No description provided for @resumeSettingsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'{project} · resets {time}'**
+  String resumeSettingsEntry(String project, String time);
+
+  /// No description provided for @resumeSettingsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {title}'**
+  String resumeSettingsOpen(String title);
+
   /// No description provided for @stashPolishFailed.
   ///
   /// In en, this message translates to:

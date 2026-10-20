@@ -478,6 +478,14 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
     }
   }
 
+  /// When the usage limit the agent stopped at resets (see
+  /// [ReportsUsageLimit]); null with none hit, and while a turn runs.
+  DateTime? get usageLimitResetsAt => switch (_kernel) {
+    ReportsUsageLimit(:final usageLimitResetsAt) when !isStreaming =>
+      usageLimitResetsAt,
+    _ => null,
+  };
+
   bool get acceptsImages => _kernel is AcceptsImages;
 
   /// What the user would likely send next: offered while the agent waits

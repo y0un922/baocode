@@ -20,6 +20,7 @@ import 'chat/reply_scroll.dart';
 import 'chat/user_message_style.dart';
 import 'chat/widgets/chat_minimap.dart';
 import 'chat/widgets/pixel_loader.dart';
+import 'chat/resume_after_reset.dart';
 import 'chat/widgets/turn_footer.dart' show LiveTurnStatsSetting;
 import 'customize/customization_store.dart';
 import 'diagnostics/app_event_watch.dart';
@@ -181,6 +182,11 @@ Future<void> main(List<String> arguments) async {
       files.settings[LiveTurnStatsSetting.settingKey],
     );
     LiveTurnStatsSetting.changes = files.settings;
+    // An agent stopped at the usage limit: set to go on once it resets, or
+    // asked; read as it stops.
+    ResumeAfterResetSetting.current = () => ResumeAfterResetSetting.enabled(
+      files.settings[ResumeAfterResetSetting.settingKey],
+    );
     // Settings → General → Claude Code: the build to run, read as each
     // agent starts.
     ClaudePathSetting.current = () =>
@@ -261,6 +267,16 @@ Future<void> main(List<String> arguments) async {
   EmojiSheet.start(EmojiSheetStore.cache());
   await prepareClaudeOnboarding();
   final locale = AppLocale(storage: files?.argv);
+  // The agents to go on once the usage limit resets, kept beside
+  // state.json: one due while the app was closed goes on as it opens.
+  if (!kIsWeb) {
+    ResumeAfterReset.current = ResumeAfterReset(
+      store: PreferenceStore.file(
+        p.join(DataDirectory.current.stateDir, ResumeAfterReset.fileName),
+      ),
+    );
+    unawaited(ResumeAfterReset.current.load());
+  }
   final workspace = Workspace(
     preferences: PreferenceStore.file(),
     // Beside state.json: written as the user types.

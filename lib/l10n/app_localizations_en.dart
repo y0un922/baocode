@@ -8764,6 +8764,70 @@ class AppLocalizationsEn extends AppLocalizations {
       'While the agent works, a line under the reply with how long the turn has taken, how fast the model writes and the tokens so far, changing as it goes. The figures under a finished turn always show.';
 
   @override
+  String usageLimitHit(String time) {
+    return 'Usage limit reached · resets $time';
+  }
+
+  @override
+  String get usageLimitAsk =>
+      'Continue this task automatically once it resets?';
+
+  @override
+  String get usageLimitContinueAfterReset => 'Continue After Reset';
+
+  @override
+  String usageLimitScheduled(String time) {
+    return 'Continues automatically after the reset at $time';
+  }
+
+  @override
+  String get usageLimitUndo => 'Undo';
+
+  @override
+  String get usageLimitDeclined =>
+      'This task won\'t continue by itself. Changed your mind? Turn it on in Settings → Models → Claude Code → Continue After Limit Reset.';
+
+  @override
+  String get usageLimitOpenSettings => 'Open Settings';
+
+  @override
+  String usageLimitTomorrow(String time) {
+    return 'tomorrow $time';
+  }
+
+  @override
+  String get resumeAfterResetPrompt =>
+      'The usage limit has reset. Continue where you left off.';
+
+  @override
+  String get resumeSettingsTitle => 'Continue After Limit Reset';
+
+  @override
+  String get resumeSettingsDescription =>
+      'When a task on your Claude plan stops at the usage limit, it can continue by itself once the limit resets.';
+
+  @override
+  String get resumeSettingsAuto => 'Always Continue Automatically';
+
+  @override
+  String get resumeSettingsAutoDescription =>
+      'Don\'t ask above the composer: every task that stops at the limit continues once it resets.';
+
+  @override
+  String get resumeSettingsEmpty =>
+      'No task is waiting for the limit to reset.';
+
+  @override
+  String resumeSettingsEntry(String project, String time) {
+    return '$project · resets $time';
+  }
+
+  @override
+  String resumeSettingsOpen(String title) {
+    return 'Open $title';
+  }
+
+  @override
   String stashPolishFailed(String error) {
     return 'Could not polish: $error';
   }

@@ -24,9 +24,12 @@ import '../../models/model_runtime.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
+import '../../chat/resume_after_reset.dart';
 import '../../chat/widgets/hover_builder.dart';
 import '../../chat/widgets/pixel_loader.dart';
 import '../../workspace/workspace.dart';
+import '../user_settings.dart';
+import 'builtin_provider_page.dart';
 import 'featured_upstreams_strip.dart';
 import 'model_dialogs.dart';
 import 'settings_dropdown.dart';
@@ -71,6 +74,8 @@ class ModelsSettingsPage extends StatefulWidget {
     this.codex,
     this.workspace,
     this.featured,
+    this.settings,
+    this.resumes,
   });
 
   final ModelProviders providers;
@@ -87,6 +92,13 @@ class ModelsSettingsPage extends StatefulWidget {
   /// The upstreams shown cards of; the app's when null (see
   /// [FeaturedUpstreamsStrip]).
   final Future<List<FeaturedUpstream>>? featured;
+
+  /// settings.json, for Claude Code's own page; none under test.
+  final UserSettings? settings;
+
+  /// The agents stopped at the usage limit, on Claude Code's own page;
+  /// the app's when null.
+  final ResumeAfterReset? resumes;
 
   /// An upstream to open the page of, as the page shows next (or now, if
   /// it does): one just imported. Taken as it is opened.
@@ -190,6 +202,17 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _providers,
     builder: (context, _) {
+      if (_open == builtinProviderId && _providers.builtinAvailable) {
+        return BuiltinProviderSettingsPage(
+          settings: widget.settings,
+          resumes: widget.resumes,
+          onBack: () => setState(() => _open = null),
+          onOpenSession: switch (widget.workspace) {
+            final workspace? => (id) => _openSession(workspace, id),
+            null => null,
+          },
+        );
+      }
       final open = _providers.provider(_open);
       if (open != null) {
         return ProviderSettingsPage(
@@ -206,6 +229,16 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
       return _list(context);
     },
   );
+
+  /// Shows the agent of session [id], the settings closed.
+  void _openSession(Workspace workspace, String id) {
+    final thread = workspace.threads
+        .where((thread) => thread.id == id)
+        .firstOrNull;
+    if (thread == null) return;
+    workspace.select(thread);
+    unawaited(Navigator.of(context).maybePop());
+  }
 
   String _defaultName(BuildContext context, String? value) {
     final l10n = context.l10n;
@@ -385,6 +418,7 @@ class _ModelsSettingsPageState extends State<ModelsSettingsPage> {
                 switchLabel: l10n.modelsEnableProvider(l10n.modelsBuiltinName),
                 onEnabled: (value) =>
                     unawaited(_providers.setBuiltinHidden(!value)),
+                onOpen: () => setState(() => _open = builtinProviderId),
               ),
             // The newest at a site BaoCode lists first (one imported later
             // takes the place of one before); the rest in their order.
