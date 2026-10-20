@@ -3147,6 +3147,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queuedRemove => 'Remove from the queue';
 
   @override
+  String get stopConfirmMessage => 'Stop the agent?';
+
+  @override
+  String stopConfirmDetail(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'The $count tasks running in the background will stop too.',
+      one: 'The task running in the background will stop too.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get stopConfirmStop => 'Stop';
+
+  @override
   String get tabClose => 'Close';
 
   @override

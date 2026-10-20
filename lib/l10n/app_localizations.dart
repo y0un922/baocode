@@ -5378,6 +5378,24 @@ abstract class AppLocalizations {
   /// **'Remove from the queue'**
   String get queuedRemove;
 
+  /// No description provided for @stopConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the agent?'**
+  String get stopConfirmMessage;
+
+  /// No description provided for @stopConfirmDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{The task running in the background will stop too.} other{The {count} tasks running in the background will stop too.}}'**
+  String stopConfirmDetail(int count);
+
+  /// No description provided for @stopConfirmStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stopConfirmStop;
+
   /// No description provided for @tabClose.
   ///
   /// In en, this message translates to:

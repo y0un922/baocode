@@ -20,6 +20,7 @@ import '../chat_keys.dart';
 import '../chat_models.dart';
 import '../chat_session.dart';
 import '../open_editor.dart';
+import '../stop_confirmation.dart';
 import '../floating/floating_layer.dart';
 import '../floating/floating_placement.dart';
 import '../floating/floating_registry.dart';
@@ -2068,7 +2069,7 @@ class ChatComposerState extends State<ChatComposer>
             streaming: _showsStop,
             enabled: _canSend,
             onSend: _submit,
-            onStop: session.stop,
+            onStop: () => stopTurn(this.context, session),
           ),
         ],
       ),

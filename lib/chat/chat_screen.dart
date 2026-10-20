@@ -38,6 +38,7 @@ import 'panels/queue_panel.dart';
 import 'panels/todo_panel.dart';
 import 'side_panel/file_link.dart';
 import 'side_panel/file_open.dart';
+import 'stop_confirmation.dart';
 import 'widgets/agent_step.dart';
 import 'widgets/chat_minimap.dart';
 import 'widgets/code_citation.dart';
@@ -426,7 +427,8 @@ class _ChatScreenState extends State<ChatScreen>
     ChatCommandIds.focusInput: _focusInput,
     ChatCommandIds.focusList: _focusList,
     ChatCommandIds.find: _findIn,
-    if (_session.isStreaming) ChatCommandIds.cancel: _session.stop,
+    if (_session.isStreaming)
+      ChatCommandIds.cancel: () => stopTurn(context, _session),
     if (_session.pendingInteraction is ApprovalRequest) ...{
       ChatCommandIds.acceptTool: () =>
           _answer(const ApprovalAnswer(ApprovalDecision.allowOnce)),

@@ -3031,6 +3031,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get queuedRemove => '移出队列';
 
   @override
+  String get stopConfirmMessage => '要停止 Agent 吗？';
+
+  @override
+  String stopConfirmDetail(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '后台运行中的 $count 个任务也会一并停止。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get stopConfirmStop => '停止';
+
+  @override
   String get tabClose => '关闭';
 
   @override

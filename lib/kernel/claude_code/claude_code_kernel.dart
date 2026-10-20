@@ -913,6 +913,13 @@ class ClaudeCodeKernel
     final askEnded = _inAsk && !ask;
     _inAsk = ask;
     _whenReady((transport) {
+      // Queued to go now, with tasks in the background: the CLI's interrupt
+      // ends those too, so the CLI stops the turn for it itself, once the
+      // call under way is done.
+      final spareBackground =
+          turn.now &&
+          _queued.contains(turn.id) &&
+          _translator.workingInBackground;
       transport.write({
         'type': 'user',
         'uuid': turn.id,
@@ -921,10 +928,12 @@ class ClaudeCodeKernel
         // Taken up once the turn before it ends, unless the user would have
         // it folded into the turn running, between its tool calls (the
         // CLI's own default).
-        'priority': switch (QueuedMessages.current()) {
-          QueuedMessages.afterTurn => 'later',
-          QueuedMessages.duringTurn => 'next',
-        },
+        'priority': spareBackground
+            ? 'now'
+            : switch (QueuedMessages.current()) {
+                QueuedMessages.afterTurn => 'later',
+                QueuedMessages.duringTurn => 'next',
+              },
         'message': {
           'role': 'user',
           'content': [
@@ -953,7 +962,7 @@ class ClaudeCodeKernel
       });
       // Queued behind the turn running: stopped once it is sent, so it is
       // taken up next, as when the user stops the turn.
-      if (turn.now && _queued.contains(turn.id)) cancel();
+      if (turn.now && _queued.contains(turn.id) && !spareBackground) cancel();
     });
   }
 
@@ -1059,8 +1068,12 @@ class ClaudeCodeKernel
         if (id != turnId) id,
     ];
     // The only one in the CLI, the others held: next anyway, only the turn
-    // running is in the way.
-    if (!_held.containsKey(turnId) && others.every(_held.containsKey)) {
+    // running is in the way. Not with tasks in the background, which an
+    // interrupt ends too: it is sent again to be taken up next (see
+    // [_write]).
+    if (!_translator.workingInBackground &&
+        !_held.containsKey(turnId) &&
+        others.every(_held.containsKey)) {
       cancel();
       return;
     }

@@ -2051,6 +2051,16 @@
   "queuedEdit": "Take back to edit",
   "queuedSendNow": "Stop the agent and send this now",
   "queuedRemove": "Remove from the queue",
+  "stopConfirmMessage": "Stop the agent?",
+  "stopConfirmDetail": "{count, plural, =1{The task running in the background will stop too.} other{The {count} tasks running in the background will stop too.}}",
+  "@stopConfirmDetail": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stopConfirmStop": "Stop",
   "tabClose": "Close",
   "tabCloseOthers": "Close Others",
   "tabCloseToTheRight": "Close to the Right",
