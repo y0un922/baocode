@@ -120,4 +120,31 @@ void main() {
     await pumpEventQueue();
     expect(kernel.usageLimitResetsAt, isNull);
   });
+
+  test('usage limit: switched to a provider\'s model, it no longer holds; '
+      'back on the plan, it does again', () async {
+    final (:kernel, :cli) = await _started();
+    cli.push({
+      'type': 'rate_limit_event',
+      'rate_limit_info': {'status': 'rejected', 'resetsAt': 1790540400},
+    });
+    await pumpEventQueue();
+    expect(kernel.usageLimitApplies, isTrue);
+    expect(kernel.usageLimitResetsAt, isNotNull);
+
+    var told = 0;
+    final listening = kernel.events.listen((_) => told++);
+    addTearDown(listening.cancel);
+    kernel.model.select('@gw/gpt-5');
+    expect(told, greaterThan(0));
+    expect(kernel.usageLimitApplies, isFalse);
+    expect(kernel.usageLimitResetsAt, isNull);
+
+    kernel.model.select('default');
+    expect(kernel.usageLimitApplies, isTrue);
+    expect(
+      kernel.usageLimitResetsAt,
+      DateTime.fromMillisecondsSinceEpoch(1790540400 * 1000),
+    );
+  });
 }

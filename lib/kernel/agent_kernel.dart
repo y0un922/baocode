@@ -215,6 +215,10 @@ abstract interface class ReportsUsageLimit {
   /// When the limit the last turn hit resets; null while none was hit
   /// (or a turn went through since), and when it was not said when.
   DateTime? get usageLimitResetsAt;
+
+  /// Whether the next message is held to that limit: not once switched
+  /// to another provider's model, say, whose limits are its own.
+  bool get usageLimitApplies;
 }
 
 /// Runs tasks beside the conversation (see [TasksReported]).

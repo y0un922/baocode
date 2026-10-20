@@ -2701,11 +2701,17 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
   final Set<AgentThread> _turnsRun = {};
 
   /// Offers to continue [thread] once the usage limit it hit resets; one
-  /// gone on since is no longer to be.
+  /// gone on since, or switched to another provider (whose limits are its
+  /// own), is no longer to be.
   void _noteLimit(AgentThread thread) {
     final session = thread.session;
     final id = thread.id;
     if (id == null) return;
+    if (!session.usageLimitApplies) {
+      _turnsRun.remove(thread);
+      resumes.remove(id);
+      return;
+    }
     if (session.isStreaming) {
       _turnsRun.add(thread);
       return;
@@ -2735,7 +2741,8 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
     final session = thread.session;
     if (session.loadingHistory) await _historyRead(session);
     if (_disposed || !_threads.contains(thread)) return true;
-    if (session.isStreaming) return true;
+    // On another provider now: nothing waited for the reset.
+    if (session.isStreaming || !session.usageLimitApplies) return true;
     if (session.loadingHistory || !session.canSend) return false;
     session.send(ComposerMessage(text: l10n().resumeAfterResetPrompt));
     return true;

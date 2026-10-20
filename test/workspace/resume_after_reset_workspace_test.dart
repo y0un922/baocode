@@ -2,6 +2,7 @@ import 'package:baocode/chat/chat_session.dart';
 import 'package:baocode/chat/resume_after_reset.dart';
 import 'package:baocode/kernel/agent_kernel.dart';
 import 'package:baocode/kernel/claude_code/claude_code_kernel.dart';
+import 'package:baocode/models/model_provider.dart';
 import 'package:baocode/models/model_providers.dart';
 import 'package:baocode/settings/pages/builtin_provider_page.dart';
 import 'package:baocode/settings/pages/models_page.dart';
@@ -11,6 +12,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../kernel_test.dart' show FakeCli;
+
+const _gateway = ModelProvider(
+  id: 'gw',
+  name: 'Gateway',
+  protocol: ProviderProtocol.openaiChat,
+  baseUrl: 'https://gw.example.com/v1',
+  models: [ProviderModel(id: 'gpt-5', contextWindow: 400000)],
+);
 
 class _Catalog implements SessionCatalog {
   static final kept = SessionRecord(
@@ -59,7 +68,7 @@ void main() {
           return cli;
         },
         readHistory: (_) async => const [],
-        providers: ModelProviders.memory(),
+        providers: ModelProviders.memory(providers: [_gateway]),
       ),
     );
     workspace = Workspace(kernels: [descriptor], resumes: resumes);
@@ -122,6 +131,23 @@ void main() {
     clis.last.push({'type': 'result', 'subtype': 'success', 'is_error': false});
     await tester.pump(const Duration(milliseconds: 100));
     expect(resumes['session-1'], isNull);
+  });
+
+  testWidgets('usage limit: switched to another provider while waiting, it '
+      'is no longer to go on', (tester) async {
+    await hitLimit(tester);
+    resumes.setScheduled('session-1', true);
+    final sent = clis.last.users.length;
+    final models = kept().session.models!;
+    models.onSelected(
+      models.options.firstWhere((option) => option.id == '@gw/gpt-5'),
+    );
+    await tester.pump();
+    expect(resumes['session-1'], isNull);
+
+    now = now.add(const Duration(hours: 1, minutes: 1));
+    await tester.pump(const Duration(hours: 1, minutes: 1));
+    expect(clis.last.users.length, sent);
   });
 
   testWidgets('usage limit: deleted, it is forgotten', (tester) async {

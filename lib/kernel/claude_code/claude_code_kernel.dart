@@ -1973,7 +1973,12 @@ class ClaudeCodeKernel
   };
 
   @override
-  DateTime? get usageLimitResetsAt => _limitResetsAt;
+  DateTime? get usageLimitResetsAt => usageLimitApplies ? _limitResetsAt : null;
+
+  /// A provider's model picked: the next message goes there, the plan's
+  /// limit no bar to it.
+  @override
+  bool get usageLimitApplies => _providerKey.isEmpty;
 
   /// The usage limit is hit, to reset [at]; null, it no longer holds.
   void _limitHit(DateTime? at) {

@@ -486,6 +486,13 @@ class ChatSession extends ChangeNotifier implements ChatFeed {
     _ => null,
   };
 
+  /// Whether the next message is held to the account's usage limit: not
+  /// once on another provider's model.
+  bool get usageLimitApplies => switch (_kernel) {
+    ReportsUsageLimit(:final usageLimitApplies) => usageLimitApplies,
+    _ => true,
+  };
+
   bool get acceptsImages => _kernel is AcceptsImages;
 
   /// What the user would likely send next: offered while the agent waits
