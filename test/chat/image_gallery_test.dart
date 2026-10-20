@@ -89,6 +89,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(InteractiveViewer)),
+      Offset.zero & (tester.view.physicalSize / tester.view.devicePixelRatio),
+    );
     expect(find.byKey(const ValueKey('image-next')), findsNothing);
     expect(find.textContaining(' / '), findsNothing);
   });

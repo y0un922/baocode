@@ -13,6 +13,7 @@ import 'package:baocode/ide/ide_chat_title.dart';
 import 'package:baocode/ide/ide_chat_history.dart';
 import 'package:baocode/ide/ide_workbench.dart';
 import 'package:baocode/main.dart';
+import 'package:baocode/kernel/mock/mock_kernels.dart';
 import 'package:baocode/workspace/workspace.dart';
 
 const _window = MethodChannel('baocode/window');
@@ -91,6 +92,8 @@ void main() {
       workspace.projects.map((project) => project.path),
       isNot(contains(folder.path)),
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets('New Text File opens Untitled-1, then Untitled-2', (
@@ -547,12 +550,14 @@ void main() {
   });
 
   testWidgets('a chat tab shown again is the chat as it was, not built anew; '
-      'the others hidden, without the keyboard', (tester) async {
+      'the other kernel hidden, without the keyboard', (tester) async {
     final workspace = await _pumpApp(tester);
     final thread = workspace.current!;
     final folder = thread.project.path;
-    final other = workspace.threads.firstWhere(
-      (t) => t.project == thread.project && t != thread && !t.archived,
+    final other = workspace.startWorker(
+      thread.project,
+      MockKernels.codex,
+      const {},
     );
     workspace.openInIde(thread);
     await tester.pump();
