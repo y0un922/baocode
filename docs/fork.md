@@ -12,6 +12,8 @@
 
 ## 审查上游后合并
 
+当前候选与合并注意事项见[上游更新审查](upstream-review.md)。
+
 1. 先提交并推送自己的改动，保持工作区干净。
 2. `git fetch upstream --no-tags`，用 `git log --oneline HEAD..upstream/main` 和 `git show <提交>` 审查更新。
 3. 在独立分支中选择性 `git cherry-pick <提交>`；需要整批更新时才考虑 merge。
