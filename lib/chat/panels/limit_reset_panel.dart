@@ -2,39 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../ide/ide_button.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
-import '../../theme/workbench_theme.dart' show themeColors;
 
-/// The agent stopped at the account's usage limit, first above the
-/// composer: when the limit resets, and whether the agent goes on by itself
-/// then ([scheduled]), with a way to say so or not.
+/// The agent stopped at the account's usage limit, to go on by itself once
+/// it resets, first above the composer: when. Turned off in the model
+/// picker, where it is turned on.
 ///
 /// Gone once the reset is past.
 class LimitResetPanel extends StatefulWidget {
-  const LimitResetPanel({
-    super.key,
-    required this.resetsAt,
-    required this.scheduled,
-    required this.onSchedule,
-    required this.onUnschedule,
-    required this.onDecline,
-  });
+  const LimitResetPanel({super.key, required this.resetsAt});
 
   final DateTime resetsAt;
-
-  /// Whether the agent goes on once it resets.
-  final bool scheduled;
-
-  /// Continue After Reset.
-  final VoidCallback onSchedule;
-
-  /// Undo, once scheduled.
-  final VoidCallback onUnschedule;
-
-  /// Cancel: not to go on.
-  final VoidCallback onDecline;
 
   @override
   State<LimitResetPanel> createState() => _LimitResetPanelState();
@@ -77,11 +56,9 @@ class _LimitResetPanelState extends State<LimitResetPanel> {
   Widget build(BuildContext context) {
     if (_past) return const SizedBox.shrink();
     final l10n = context.l10n;
-    final time = resetTime(widget.resetsAt, l10n);
-    final warning = themeColors['editorWarning.foreground'];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10),
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
@@ -90,57 +67,17 @@ class _LimitResetPanelState extends State<LimitResetPanel> {
       child: Row(
         children: [
           Icon(
-            widget.scheduled
-                ? Icons.schedule_send_rounded
-                : Icons.hourglass_bottom_rounded,
+            Icons.schedule_send_rounded,
             size: 14,
-            color: widget.scheduled ? AppColors.textMuted : warning,
+            color: AppColors.textMuted,
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.scheduled
-                      ? l10n.usageLimitScheduled(time)
-                      : l10n.usageLimitHit(time),
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (!widget.scheduled) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.usageLimitAsk,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                ],
-              ],
+            child: Text(
+              l10n.usageLimitScheduled(resetTime(widget.resetsAt, l10n)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ),
-          const SizedBox(width: 8),
-          if (widget.scheduled)
-            IdeButton(
-              label: l10n.usageLimitUndo,
-              secondary: true,
-              onPressed: widget.onUnschedule,
-            )
-          else ...[
-            IdeButton(
-              label: l10n.commonCancel,
-              secondary: true,
-              onPressed: widget.onDecline,
-            ),
-            const SizedBox(width: 6),
-            IdeButton(
-              label: l10n.usageLimitContinueAfterReset,
-              onPressed: widget.onSchedule,
-            ),
-          ],
         ],
       ),
     );

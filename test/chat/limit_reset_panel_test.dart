@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Future<List<String>> pump(
+  Future<void> pump(
     WidgetTester tester, {
     required DateTime resetsAt,
-    bool scheduled = false,
     Locale locale = const Locale('en'),
   }) async {
-    final calls = <String>[];
     await tester.pumpWidget(
       MaterialApp(
         locale: locale,
@@ -21,23 +19,16 @@ void main() {
             alignment: Alignment.bottomCenter,
             child: SizedBox(
               width: 640,
-              child: LimitResetPanel(
-                resetsAt: resetsAt,
-                scheduled: scheduled,
-                onSchedule: () => calls.add('schedule'),
-                onUnschedule: () => calls.add('unschedule'),
-                onDecline: () => calls.add('decline'),
-              ),
+              child: LimitResetPanel(resetsAt: resetsAt),
             ),
           ),
         ),
       ),
     );
     await tester.pump();
-    return calls;
   }
 
-  /// A time later today, [minutes] from now (clamped before midnight).
+  /// A time later today, half an hour on (clamped before midnight).
   DateTime laterToday() {
     final now = DateTime.now();
     final at = now.add(const Duration(minutes: 30));
@@ -49,45 +40,25 @@ void main() {
   String clock(DateTime at) =>
       '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
 
-  testWidgets('says when the limit resets, and asks to go on then', (
-    tester,
-  ) async {
+  testWidgets('says when the agent goes on, nothing to answer', (tester) async {
     final at = laterToday();
-    final calls = await pump(tester, resetsAt: at);
+    await pump(tester, resetsAt: at);
     expect(
-      find.text('Usage limit reached · resets ${clock(at)}'),
+      find.text(
+        'Usage limit reached · continues automatically after it resets at '
+        '${clock(at)}',
+      ),
       findsOneWidget,
     );
-    expect(
-      find.text('Continue this task automatically once it resets?'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Continue After Reset'));
-    await tester.tap(find.text('Cancel'));
-    expect(calls, ['schedule', 'decline']);
+    expect(find.byType(GestureDetector), findsNothing);
     // Gone as the limit resets: no timer left behind.
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('scheduled, says so, and is undone', (tester) async {
-    final at = laterToday();
-    final calls = await pump(tester, resetsAt: at, scheduled: true);
-    expect(
-      find.text('Continues automatically after the reset at ${clock(at)}'),
-      findsOneWidget,
-    );
-    expect(find.text('Cancel'), findsNothing);
-    await tester.tap(find.text('Undo'));
-    expect(calls, ['unschedule']);
     await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('in Chinese', (tester) async {
     final at = laterToday();
     await pump(tester, resetsAt: at, locale: const Locale('zh'));
-    expect(find.text('已达到用量上限，${clock(at)} 重置'), findsOneWidget);
-    expect(find.text('重置后继续'), findsOneWidget);
-    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('已达到用量上限，将在 ${clock(at)} 重置后自动继续'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -96,13 +67,13 @@ void main() {
       tester,
       resetsAt: DateTime.now().add(const Duration(milliseconds: 300)),
     );
-    expect(find.text('Continue After Reset'), findsOneWidget);
+    expect(find.textContaining('Usage limit reached'), findsOneWidget);
     // The clock read is the real one: past it, then the timer.
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 400)),
     );
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('Continue After Reset'), findsNothing);
+    expect(find.textContaining('Usage limit reached'), findsNothing);
   });
 
   test('the reset time: today, tomorrow, or with its date', () {

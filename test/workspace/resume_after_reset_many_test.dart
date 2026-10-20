@@ -47,10 +47,16 @@ void main() {
   late Map<String, FakeCli> clis;
   late Workspace workspace;
   late DateTime now;
+  // The setting, as settings.json has it.
+  late bool on;
 
   /// The workspace (and the scheduler, kept in [store]) as the app starts.
   Future<void> start(WidgetTester tester) async {
-    resumes = ResumeAfterReset(store: store, clock: () => now);
+    resumes = ResumeAfterReset(
+      store: store,
+      enabled: () => on,
+      clock: () => now,
+    );
     late final KernelDescriptor descriptor;
     descriptor = KernelDescriptor(
       id: 'claude-code',
@@ -78,6 +84,7 @@ void main() {
 
   setUp(() {
     now = DateTime.now();
+    on = true;
     store = MemoryPreferenceStore();
     clis = {};
   });
@@ -122,14 +129,11 @@ void main() {
     await start(tester);
     final resets = now.add(const Duration(hours: 2));
     await hit(tester, 'a', resets);
-    resumes.setScheduled('a', true);
     // Half an hour on, another stops at it, while the user looks elsewhere.
     await elapse(tester, const Duration(minutes: 30));
     await hit(tester, 'b', resets);
-    expect(resumes['b']!.scheduled, isTrue);
     await elapse(tester, const Duration(minutes: 30));
     await hit(tester, 'c', resets);
-    expect(resumes['c']!.scheduled, isTrue);
     expect(listed(), unorderedEquals(['a', 'b', 'c']));
 
     await elapse(tester, const Duration(hours: 1, minutes: 1));
@@ -137,18 +141,16 @@ void main() {
     expect(listed(), isEmpty);
   });
 
-  testWidgets('one turned down is not taken along', (tester) async {
+  testWidgets('the setting off: none goes on, and none is listed past the '
+      'reset', (tester) async {
+    on = false;
     await start(tester);
-    final resets = now.add(const Duration(hours: 2));
+    final resets = now.add(const Duration(hours: 1));
     await hit(tester, 'a', resets);
-    resumes.setScheduled('a', false);
     await hit(tester, 'b', resets);
-    resumes.setScheduled('b', true);
-    expect(resumes['a']!.state, ResumeState.declined);
-
-    await elapse(tester, const Duration(hours: 2, minutes: 1));
-    expect([continued('a'), continued('b')], [0, 1]);
-    // Its reset past, nothing to do: not listed either.
+    expect(listed(), unorderedEquals(['a', 'b']));
+    await elapse(tester, const Duration(hours: 1, minutes: 1));
+    expect([continued('a'), continued('b')], [0, 0]);
     expect(listed(), isEmpty);
   });
 
@@ -157,9 +159,6 @@ void main() {
     await start(tester);
     await hit(tester, 'a', now.add(const Duration(hours: 1)));
     await hit(tester, 'b', now.add(const Duration(hours: 3)));
-    resumes
-      ..setScheduled('a', true)
-      ..setScheduled('b', true);
 
     await elapse(tester, const Duration(hours: 1, minutes: 1));
     expect([continued('a'), continued('b')], [1, 0]);
@@ -170,23 +169,11 @@ void main() {
     expect(listed(), isEmpty);
   });
 
-  testWidgets('an offer not answered by the reset is no longer listed', (
-    tester,
-  ) async {
-    await start(tester);
-    await hit(tester, 'a', now.add(const Duration(hours: 1)));
-    expect(listed(), ['a']);
-    await elapse(tester, const Duration(hours: 1, minutes: 1));
-    expect(continued('a'), 0);
-    expect(listed(), isEmpty);
-  });
-
   testWidgets('stopped at the limit again as it goes on (the reset not '
-      'taken yet), it goes on again a little later, unasked', (tester) async {
+      'taken yet), it goes on again a little later', (tester) async {
     await start(tester);
     final resets = now.add(const Duration(hours: 1));
     await hit(tester, 'a', resets);
-    resumes.setScheduled('a', true);
     await elapse(tester, const Duration(hours: 1, minutes: 1));
     expect(continued('a'), 1);
 
@@ -205,7 +192,7 @@ void main() {
       'result': "You've hit your session limit",
     });
     await tester.pump(const Duration(milliseconds: 100));
-    expect(resumes['a']!.scheduled, isTrue);
+    expect(resumes['a'], isNotNull);
     expect(continued('a'), 1);
 
     await elapse(tester, const Duration(minutes: 2));
@@ -219,20 +206,7 @@ void main() {
     await store.write({
       'entries': [
         for (final id in ['a', 'b'])
-          ResumeEntry(
-            sessionId: id,
-            title: 'Task $id',
-            project: id,
-            resetsAt: resets,
-            state: ResumeState.scheduled,
-          ).toJson(),
-        ResumeEntry(
-          sessionId: 'c',
-          title: 'Task c',
-          project: 'c',
-          resetsAt: resets,
-          state: ResumeState.offered,
-        ).toJson(),
+          ResumeEntry(sessionId: id, resetsAt: resets).toJson(),
       ],
     });
     await start(tester);

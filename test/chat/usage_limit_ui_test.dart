@@ -2,14 +2,14 @@ import 'package:baocode/chat/chat_screen.dart';
 import 'package:baocode/chat/chat_session.dart';
 import 'package:baocode/chat/panels/limit_reset_panel.dart';
 import 'package:baocode/chat/resume_after_reset.dart';
-import 'package:baocode/ide/ide_notifications.dart';
 import 'package:baocode/kernel/agent_kernel.dart';
 import 'package:baocode/kernel/claude_code/claude_code_kernel.dart';
+import 'package:baocode/chat/composer/session_model_picker.dart';
+import 'package:baocode/ide/ide_switch.dart';
 import 'package:baocode/models/model_provider.dart';
 import 'package:baocode/models/model_providers.dart';
-import 'package:baocode/settings/pages/models_page.dart';
-import 'package:baocode/settings/settings_dialog.dart';
 import 'package:baocode/theme/app_theme.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,19 +41,23 @@ Map<String, Object?> _limitError(String text) => {
 
 void main() {
   late ResumeAfterReset resumes;
-  late IdeNotifications notifications;
-  late List<SettingsSection> opened;
+  // The setting, as settings.json has it.
+  late ValueNotifier<bool> setting;
 
   setUp(() {
     final before = ResumeAfterReset.current;
+    setting = ValueNotifier(true);
+    ResumeAfterResetSetting.current = () => setting.value;
+    ResumeAfterResetSetting.changes = setting;
+    ResumeAfterResetSetting.write = (on) => setting.value = on;
     resumes = ResumeAfterReset.current = ResumeAfterReset();
-    notifications = IdeNotifications();
-    opened = [];
     addTearDown(() {
       ResumeAfterReset.current = before;
       ResumeAfterResetSetting.current = () => false;
+      ResumeAfterResetSetting.changes = null;
+      ResumeAfterResetSetting.write = null;
       resumes.dispose();
-      notifications.dispose();
+      setting.dispose();
     });
   });
 
@@ -94,13 +98,7 @@ void main() {
       MaterialApp(
         theme: buildAppTheme(),
         localizationsDelegates: const [FlutterQuillLocalizations.delegate],
-        home: SettingsOpener(
-          open: opened.add,
-          child: IdeNotificationsScope(
-            notifications: notifications,
-            child: ChatScreen(title: 'Fix the tests', session: session),
-          ),
-        ),
+        home: ChatScreen(title: 'Fix the tests', session: session),
       ),
     );
     await tester.pump();
@@ -116,7 +114,8 @@ void main() {
     return (session: session, cli: cli);
   }
 
-  /// The turn ends at the limit, which resets in an hour.
+  /// The turn ends at the limit, which resets in an hour; listed, as the
+  /// workspace lists it.
   Future<DateTime> hitLimit(WidgetTester tester, FakeCli cli) async {
     final at = DateTime.now().add(const Duration(hours: 1));
     final seconds = at.millisecondsSinceEpoch ~/ 1000;
@@ -137,73 +136,39 @@ void main() {
         'result': "You've hit your session limit · resets 11pm",
       });
     await tester.pump(const Duration(milliseconds: 100));
-    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+    final resetsAt = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+    resumes.hit(sessionId: 'session-1', resetsAt: resetsAt);
+    await tester.pump();
+    return resetsAt;
   }
 
-  testWidgets('usage limit: asked above the composer, it is scheduled', (
-    tester,
-  ) async {
+  testWidgets('usage limit, the setting on: says when it goes on, nothing '
+      'asked', (tester) async {
     final (:session, :cli) = await pumpSession(tester);
     expect(find.byType(LimitResetPanel), findsNothing);
     final at = await hitLimit(tester, cli);
     expect(session.usageLimitResetsAt, at);
     expect(find.byType(LimitResetPanel), findsOneWidget);
-    expect(find.text('Continue After Reset'), findsOneWidget);
-
-    await tester.tap(find.text('Continue After Reset'));
+    expect(find.textContaining('continues automatically'), findsOneWidget);
+    // Turned off: nothing shown, nothing to go on.
+    setting.value = false;
     await tester.pump();
-    expect(resumes['session-1']!.scheduled, isTrue);
-    expect(resumes['session-1']!.title, 'Fix the tests');
-    expect(find.textContaining('Continues automatically'), findsOneWidget);
-
-    await tester.tap(find.text('Undo'));
-    await tester.pump();
-    expect(resumes['session-1']!.state, ResumeState.declined);
+    expect(find.byType(LimitResetPanel), findsNothing);
     await tester.pumpWidget(const SizedBox());
     // Its timer: listed till the limit resets.
     resumes.dispose();
   });
 
-  testWidgets('usage limit: declined, it says where to turn it on', (
-    tester,
-  ) async {
+  testWidgets('usage limit, the setting off: nothing shown', (tester) async {
+    setting.value = false;
     final (session: _, :cli) = await pumpSession(tester);
     await hitLimit(tester, cli);
-    await tester.tap(find.text('Cancel'));
-    await tester.pump();
     expect(find.byType(LimitResetPanel), findsNothing);
-    expect(resumes['session-1']!.state, ResumeState.declined);
-    final note = notifications.notifications.single;
-    expect(note.message, contains('Settings → Models → Claude Code'));
-    expect(note.primary.single.label, 'Open Settings');
-    note.primary.single.run();
-    expect(opened, [SettingsSection.models]);
-    expect(ModelsSettingsPage.reveal.value, builtinProviderId);
-    ModelsSettingsPage.reveal.value = null;
     await tester.pumpWidget(const SizedBox());
     resumes.dispose();
   });
 
-  testWidgets('usage limit: set to go on unasked, it is scheduled at once', (
-    tester,
-  ) async {
-    ResumeAfterResetSetting.current = () => true;
-    final (session: _, :cli) = await pumpSession(tester);
-    await hitLimit(tester, cli);
-    // The workspace hits it; here, the screen does as it is answered.
-    resumes.hit(
-      sessionId: 'session-1',
-      title: 'Fix the tests',
-      project: 'project',
-      resetsAt: DateTime.now().add(const Duration(hours: 1)),
-    );
-    await tester.pump();
-    expect(find.textContaining('Continues automatically'), findsOneWidget);
-    expect(find.text('Cancel'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('usage limit: only warned, nothing is asked', (tester) async {
+  testWidgets('usage limit: only warned, nothing shown', (tester) async {
     final (session: _, :cli) = await pumpSession(tester);
     cli
       ..push({
@@ -221,7 +186,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('usage limit: on a provider, not asked', (tester) async {
+  testWidgets('usage limit: on a provider, none', (tester) async {
     final (:session, :cli) = await pumpSession(
       tester,
       settings: {'model': '@gw/gpt-5'},
@@ -229,6 +194,48 @@ void main() {
     await hitLimit(tester, cli);
     expect(session.usageLimitResetsAt, isNull);
     expect(find.byType(LimitResetPanel), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    resumes.dispose();
+  });
+
+  testWidgets('the model picker: its switch beside Claude\'s own models, '
+      'not a provider\'s', (tester) async {
+    setting.value = false;
+    final (:session, :cli) = await pumpSession(tester);
+    cli.push({'type': 'result', 'subtype': 'success', 'is_error': false});
+    // The menu opens, its submenu follows the pointer, over a moment.
+    Future<void> settle() async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    await settle();
+    final models = session.models!.options;
+    final own = models.firstWhere((model) => !model.id.startsWith('@'));
+    expect(session.continuesAfterLimit(own.id), isTrue);
+    expect(session.continuesAfterLimit('@gw/gpt-5'), isFalse);
+
+    await tester.tap(find.byType(SessionModelPicker));
+    await settle();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.text(own.label).last));
+    await settle();
+    final toggle = find.text('Continue After Limit Reset');
+    expect(toggle, findsOneWidget);
+    final switches = find.byType(IdeSwitch);
+    expect(tester.widget<IdeSwitch>(switches.last).value, isFalse);
+    await tester.tap(toggle);
+    await settle();
+    expect(setting.value, isTrue);
+    // The menu stays open, the switch on.
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<IdeSwitch>(switches.last).value, isTrue);
+
+    final gateway = models.firstWhere((model) => model.id == '@gw/gpt-5');
+    await mouse.moveTo(tester.getCenter(find.text(gateway.label).last));
+    await settle();
+    expect(find.text('Continue After Limit Reset'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }

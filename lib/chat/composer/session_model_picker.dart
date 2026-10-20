@@ -12,6 +12,7 @@ import '../../settings/settings_dialog.dart'
 import '../../theme/app_theme.dart';
 import '../../theme/codicons.dart';
 import '../chat_session.dart';
+import '../resume_after_reset.dart';
 import '../widgets/hover_builder.dart';
 import 'composer_picker.dart';
 
@@ -76,8 +77,40 @@ class SessionModelPicker extends StatelessWidget {
     if (choice == 0 && context.mounted) pick();
   }
 
+  /// Beside a model of the account's plan, last: whether an agent stopped
+  /// at its usage limit goes on by itself once it resets. Not where it
+  /// cannot be set.
+  ModelSettingChoice? _resumeAfterLimit(BuildContext context, String model) {
+    final write = ResumeAfterResetSetting.write;
+    if (write == null || !session.continuesAfterLimit(model)) return null;
+    final on = KernelOption(
+      'on',
+      context.l10n.resumeAfterLimitToggle,
+      Icons.schedule_send_rounded,
+      '',
+    );
+    final enabled = ResumeAfterResetSetting.current();
+    return ModelSettingChoice(
+      kind: null,
+      options: [on],
+      selected: enabled ? on : null,
+      toggle: true,
+      onSelected: (_) => write(!enabled),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      switch (ResumeAfterResetSetting.changes) {
+        // Its switch turned, as settings.json says.
+        final changes? => ListenableBuilder(
+          listenable: changes,
+          builder: (context, _) => _build(context),
+        ),
+        null => _build(context),
+      };
+
+  Widget _build(BuildContext context) {
     final model = session.models;
     final l10n = context.l10n;
     if (model == null) {
@@ -106,6 +139,7 @@ class SessionModelPicker extends StatelessWidget {
               _switch(context, option, () => setting.onSelected(choice)),
             ),
           ),
+        ?_resumeAfterLimit(context, option.id),
       ],
       tooltip: tooltip,
       menuWidth: 260,

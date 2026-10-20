@@ -4,16 +4,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import '../ide/ide_notifications.dart';
 import '../kernel/kernel_types.dart';
 import '../keybindings/chat_keybindings.dart';
 import '../l10n/l10n.dart';
 import '../models/model_welcome.dart';
 import '../remote/remote_location.dart';
 import '../remote/remote_status.dart' show ClaudeInstallBanner, SshHostBanner;
-import '../models/model_provider.dart' show builtinProviderId;
-import '../settings/pages/models_page.dart' show ModelsSettingsPage;
-import '../settings/settings_dialog.dart' show SettingsOpener, SettingsSection;
 import '../stash/stash_actions.dart';
 import '../stash/stash_store.dart';
 import '../theme/app_theme.dart';
@@ -873,75 +869,14 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
-  /// The usage limit the agent stopped at, while it holds: whether the
-  /// agent goes on once it resets. None once that was turned down.
+  /// The usage limit the agent stopped at, while it holds and the agent is
+  /// to go on once it resets: when. Nothing with the setting off.
   Widget? _buildLimitPanel() {
     final (at, id) = (_session.usageLimitResetsAt, _session.sessionId);
     if (at == null || id == null) return null;
     final resumes = ResumeAfterReset.current;
-    final entry = resumes[id];
-    if (entry?.state == ResumeState.declined) return null;
-    // Known to the workspace as it hit the limit; not where there is none.
-    void ensure() {
-      if (resumes[id] != null) return;
-      resumes.hit(
-        sessionId: id,
-        title: widget.title,
-        project: _session.paths.basename(_session.root ?? ''),
-        resetsAt: at,
-      );
-    }
-
-    return LimitResetPanel(
-      key: ValueKey(('limit', id)),
-      resetsAt: at,
-      scheduled: entry?.scheduled ?? false,
-      onSchedule: () {
-        ensure();
-        resumes.setScheduled(id, true);
-      },
-      onUnschedule: () => resumes.setScheduled(id, false),
-      onDecline: () {
-        ensure();
-        resumes.setScheduled(id, false);
-        _tellDeclined();
-      },
-    );
-  }
-
-  /// Turned down: where to turn it on after all.
-  void _tellDeclined() {
-    final l10n = context.l10n;
-    final open = SettingsOpener.maybeOf(context);
-    final settings = open == null
-        ? null
-        : () {
-            // On Claude Code's own page, where it is turned on.
-            ModelsSettingsPage.reveal.value = builtinProviderId;
-            open(SettingsSection.models);
-          };
-    if (IdeNotificationsScope.maybeOf(context) case final notifications?) {
-      notifications.notify(
-        IdeSeverity.info,
-        l10n.usageLimitDeclined,
-        primary: [
-          if (settings != null)
-            IdeNotificationAction(l10n.usageLimitOpenSettings, settings),
-        ],
-      );
-      return;
-    }
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(l10n.usageLimitDeclined),
-        action: settings == null
-            ? null
-            : SnackBarAction(
-                label: l10n.usageLimitOpenSettings,
-                onPressed: settings,
-              ),
-      ),
-    );
+    if (!resumes.enabled || resumes[id] == null) return null;
+    return LimitResetPanel(key: ValueKey(('limit', id)), resetsAt: at);
   }
 
   /// Under the session's own conversation: its panels and the composer.

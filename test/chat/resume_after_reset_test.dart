@@ -1,16 +1,27 @@
 import 'package:baocode/chat/resume_after_reset.dart';
 import 'package:baocode/workspace/preference_store.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   // The scheduler's clock, moved on with the test's timers (see [elapse]).
   late DateTime now;
 
-  setUp(() => now = _start);
-  tearDown(() => ResumeAfterResetSetting.current = () => false);
+  // The setting, as settings.json has it.
+  late ValueNotifier<bool> setting;
+
+  setUp(() {
+    now = _start;
+    setting = ValueNotifier(true);
+  });
 
   ResumeAfterReset make({PreferenceStore? store}) {
-    final resumes = ResumeAfterReset(store: store, clock: () => now);
+    final resumes = ResumeAfterReset(
+      store: store,
+      enabled: () => setting.value,
+      enabledChanges: setting,
+      clock: () => now,
+    );
     addTearDown(resumes.dispose);
     return resumes;
   }
@@ -23,14 +34,9 @@ void main() {
   }
 
   void hit(ResumeAfterReset resumes, String id, {Duration after = _hour}) =>
-      resumes.hit(
-        sessionId: id,
-        title: 'Fix the tests',
-        project: 'baocode',
-        resetsAt: _start.add(after),
-      );
+      resumes.hit(sessionId: id, resetsAt: _start.add(after));
 
-  testWidgets('a limit hit is offered, and goes on only once said to', (
+  testWidgets('on, a limit hit goes on a minute after it resets', (
     tester,
   ) async {
     final resumed = <String>[];
@@ -40,36 +46,49 @@ void main() {
         return true;
       };
     hit(resumes, 'a');
-    expect(resumes['a']!.state, ResumeState.offered);
-    await elapse(tester, const Duration(hours: 2));
-    expect(resumed, isEmpty);
-
-    hit(resumes, 'b', after: const Duration(hours: 3));
-    resumes.setScheduled('b', true);
     await elapse(tester, const Duration(minutes: 59, seconds: 59));
     expect(resumed, isEmpty);
-    // A minute after the reset.
     await elapse(tester, const Duration(minutes: 1, seconds: 1));
-    expect(resumed, ['b']);
-    expect(resumes['b'], isNull);
+    expect(resumed, ['a']);
+    expect(resumes['a'], isNull);
   });
 
-  test('set to go on unasked, a limit hit is scheduled', () {
-    ResumeAfterResetSetting.current = () => true;
-    final resumes = make();
+  testWidgets('off, it does not go on, and is let go as it resets', (
+    tester,
+  ) async {
+    setting.value = false;
+    final resumed = <String>[];
+    final resumes = make()
+      ..resume = (id) async {
+        resumed.add(id);
+        return true;
+      };
     hit(resumes, 'a');
-    expect(resumes['a']!.state, ResumeState.scheduled);
+    expect(resumes['a'], isNotNull);
+    await elapse(tester, const Duration(hours: 2));
+    expect(resumed, isEmpty);
+    expect(resumes.entries, isEmpty);
   });
 
-  test('declined, it stays declined at a new time; and is turned on', () {
-    final resumes = make();
+  testWidgets('turned on after the limit was hit, it goes on all the same; '
+      'turned off, not', (tester) async {
+    setting.value = false;
+    final resumed = <String>[];
+    final resumes = make()
+      ..resume = (id) async {
+        resumed.add(id);
+        return true;
+      };
     hit(resumes, 'a');
-    resumes.setScheduled('a', false);
-    hit(resumes, 'a', after: const Duration(hours: 2));
-    expect(resumes['a']!.state, ResumeState.declined);
-    expect(resumes['a']!.resetsAt, _start.add(const Duration(hours: 2)));
-    resumes.setScheduled('a', true);
-    expect(resumes['a']!.scheduled, isTrue);
+    hit(resumes, 'b', after: const Duration(hours: 3));
+    await elapse(tester, const Duration(minutes: 30));
+    setting.value = true;
+    await elapse(tester, const Duration(minutes: 32));
+    expect(resumed, ['a']);
+    setting.value = false;
+    await elapse(tester, const Duration(hours: 3));
+    expect(resumed, ['a']);
+    expect(resumes.entries, isEmpty);
   });
 
   testWidgets('not continued, it is tried again, then let go', (tester) async {
@@ -80,7 +99,6 @@ void main() {
         return false;
       };
     hit(resumes, 'a');
-    resumes.setScheduled('a', true);
     await elapse(tester, const Duration(hours: 1, minutes: 1));
     expect(tries, 1);
     await elapse(tester, const Duration(minutes: 1));
@@ -96,7 +114,6 @@ void main() {
     final resumed = <String>[];
     final resumes = make();
     hit(resumes, 'a');
-    resumes.setScheduled('a', true);
     await elapse(tester, const Duration(hours: 2));
     resumes.resume = (id) async {
       resumed.add(id);
@@ -106,16 +123,11 @@ void main() {
     expect(resumed, ['a']);
   });
 
-  testWidgets('kept between runs: one due meanwhile goes on, past ones '
-      'turned down go', (tester) async {
+  testWidgets('kept between runs: one due meanwhile goes on', (tester) async {
     final store = MemoryPreferenceStore();
     final before = make(store: store);
-    hit(before, 'declined');
-    before.setScheduled('declined', false);
     hit(before, 'later', after: const Duration(hours: 5));
-    before.setScheduled('later', false);
     hit(before, 'due');
-    before.setScheduled('due', true);
     await tester.pump();
 
     now = now.add(const Duration(hours: 2));
@@ -126,48 +138,31 @@ void main() {
       [for (final entry in after.entries) entry.sessionId],
       ['due', 'later'],
     );
-    expect(after['due']!.title, 'Fix the tests');
     after.resume = (id) async {
       resumed.add(id);
       return true;
     };
     await elapse(tester, Duration.zero);
     expect(resumed, ['due']);
-    // Their timers (the one still listed lets go as it resets), gone.
+    // Their timers, gone.
     before.dispose();
     after.dispose();
   });
 
-  test('one set to go on takes along those not answered, and those '
-      'hitting the limit after; not those turned down', () {
-    final resumes = make();
-    hit(resumes, 'a');
-    hit(resumes, 'b');
-    hit(resumes, 'no');
-    resumes
-      ..setScheduled('no', false)
-      ..setScheduled('a', true);
-    expect(resumes['b']!.scheduled, isTrue);
-    expect(resumes['no']!.state, ResumeState.declined);
-    hit(resumes, 'c', after: const Duration(hours: 3));
-    expect(resumes['c']!.scheduled, isTrue);
-  });
+  test('kept between runs, the setting off: those past are let go', () async {
+    final store = MemoryPreferenceStore();
+    final before = make(store: store);
+    hit(before, 'later', after: const Duration(hours: 5));
+    hit(before, 'past');
+    await Future<void>.delayed(Duration.zero);
+    before.dispose();
 
-  testWidgets('not to go on, it is no longer listed once its limit resets', (
-    tester,
-  ) async {
-    final resumes = make();
-    var told = 0;
-    resumes.addListener(() => told++);
-    hit(resumes, 'a');
-    hit(resumes, 'b', after: const Duration(hours: 2));
-    resumes.setScheduled('b', false);
-    told = 0;
-    await elapse(tester, _hour);
-    expect([for (final entry in resumes.entries) entry.sessionId], ['b']);
-    expect(told, greaterThan(0));
-    await elapse(tester, _hour);
-    expect(resumes.entries, isEmpty);
+    setting.value = false;
+    now = now.add(const Duration(hours: 2));
+    final after = make(store: store);
+    await after.load();
+    expect([for (final entry in after.entries) entry.sessionId], ['later']);
+    after.dispose();
   });
 
   testWidgets('the computer asleep past the reset: it goes on as it wakes', (
@@ -180,7 +175,6 @@ void main() {
         return true;
       };
     hit(resumes, 'a');
-    resumes.setScheduled('a', true);
     // The clock moved on two hours; the timers, as asleep, hardly.
     now = now.add(const Duration(hours: 2));
     await tester.pump(const Duration(minutes: 1));
@@ -202,9 +196,7 @@ void main() {
         return true;
       };
     hit(resumes, 'a');
-    resumes
-      ..setScheduled('a', true)
-      ..remove('a');
+    resumes.remove('a');
     await elapse(tester, const Duration(hours: 2));
     expect(resumed, isEmpty);
   });

@@ -182,10 +182,25 @@ Future<void> main(List<String> arguments) async {
       files.settings[LiveTurnStatsSetting.settingKey],
     );
     LiveTurnStatsSetting.changes = files.settings;
-    // An agent stopped at the usage limit: set to go on once it resets, or
-    // asked; read as it stops.
+    // An agent stopped at the usage limit: whether it goes on once it
+    // resets, set in the model picker.
     ResumeAfterResetSetting.current = () => ResumeAfterResetSetting.enabled(
       files.settings[ResumeAfterResetSetting.settingKey],
+    );
+    ResumeAfterResetSetting.changes = files.settings;
+    ResumeAfterResetSetting.write = (on) => unawaited(
+      files.settings
+          .update(
+            ResumeAfterResetSetting.settingKey,
+            on ? ResumeAfterResetSetting.on : null,
+          )
+          .catchError((Object error) {
+            // A settings file that does not parse is left as it is; its
+            // error is shown.
+            debugPrint(
+              '${ResumeAfterResetSetting.settingKey} not kept: $error',
+            );
+          }),
     );
     // Settings → General → Claude Code: the build to run, read as each
     // agent starts.

@@ -4,9 +4,6 @@ import 'package:baocode/kernel/agent_kernel.dart';
 import 'package:baocode/kernel/claude_code/claude_code_kernel.dart';
 import 'package:baocode/models/model_provider.dart';
 import 'package:baocode/models/model_providers.dart';
-import 'package:baocode/settings/pages/builtin_provider_page.dart';
-import 'package:baocode/settings/pages/models_page.dart';
-import 'package:baocode/settings/pages/settings_widgets.dart';
 import 'package:baocode/workspace/workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +47,7 @@ void main() {
 
   setUp(() {
     now = DateTime.now();
-    resumes = ResumeAfterReset(clock: () => now);
+    resumes = ResumeAfterReset(enabled: () => true, clock: () => now);
     clis = [];
     late final KernelDescriptor descriptor;
     descriptor = KernelDescriptor(
@@ -98,15 +95,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets('usage limit: the workspace offers to continue an agent '
-      'stopped at it, and continues it once it resets', (tester) async {
+  testWidgets('usage limit: the workspace lists an agent stopped at it, '
+      'and continues it once it resets', (tester) async {
     await hitLimit(tester);
-    final entry = resumes['session-1']!;
-    expect(entry.state, ResumeState.offered);
-    expect(entry.title, 'Fix the tests');
-    expect(entry.project, 'project');
+    expect(resumes['session-1'], isNotNull);
 
-    resumes.setScheduled('session-1', true);
     final sent = clis.last.users.length;
     // An hour and a minute on.
     now = now.add(const Duration(hours: 1, minutes: 1));
@@ -125,7 +118,6 @@ void main() {
     tester,
   ) async {
     await hitLimit(tester);
-    resumes.setScheduled('session-1', false);
     kept().session.send(const ComposerMessage(text: 'go on'));
     await tester.pump(const Duration(milliseconds: 100));
     clis.last.push({'type': 'result', 'subtype': 'success', 'is_error': false});
@@ -136,7 +128,6 @@ void main() {
   testWidgets('usage limit: switched to another provider while waiting, it '
       'is no longer to go on', (tester) async {
     await hitLimit(tester);
-    resumes.setScheduled('session-1', true);
     final sent = clis.last.users.length;
     final models = kept().session.models!;
     models.onSelected(
@@ -155,60 +146,5 @@ void main() {
     workspace.delete(kept());
     expect(resumes['session-1'], isNull);
     await tester.pump(const Duration(milliseconds: 100));
-  });
-
-  testWidgets('Claude Code\'s page lists it, and shows it on a click', (
-    tester,
-  ) async {
-    await hitLimit(tester);
-    tester.view.physicalSize = const Size(1000, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    // As the settings dialog: a route over the workbench.
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => Scaffold(
-                  body: ModelsSettingsPage(
-                    providers: ModelProviders.memory(),
-                    workspace: workspace,
-                    resumes: resumes,
-                  ),
-                ),
-              ),
-            ),
-            child: const Text('Settings'),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Claude Code (this machine's setup)"));
-    await tester.pump();
-    expect(find.byType(BuiltinProviderSettingsPage), findsOneWidget);
-    expect(find.text('Fix the tests'), findsOneWidget);
-    expect(find.textContaining('project · resets '), findsOneWidget);
-
-    // Its switch sets it to go on, as one turned down above its composer.
-    resumes.setScheduled('session-1', false);
-    await tester.pump();
-    await tester.tap(find.byType(SettingsSwitch).last);
-    await tester.pump();
-    expect(resumes['session-1']!.scheduled, isTrue);
-
-    workspace.select(
-      workspace.threads.firstWhere((thread) => thread.id != 'session-1'),
-    );
-    await tester.tap(find.text('Fix the tests'));
-    await tester.pumpAndSettle();
-    expect(workspace.current?.id, 'session-1');
-    // The settings closed, the agent shown.
-    expect(find.byType(ModelsSettingsPage), findsNothing);
-    // Its timer, gone with it.
-    resumes.remove('session-1');
   });
 }

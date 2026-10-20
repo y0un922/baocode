@@ -219,6 +219,10 @@ abstract interface class ReportsUsageLimit {
   /// Whether the next message is held to that limit: not once switched
   /// to another provider's model, say, whose limits are its own.
   bool get usageLimitApplies;
+
+  /// Whether [model] (an option of [SelectsModel.model]) is held to the
+  /// account's limit: not another provider's.
+  bool usageLimitAppliesTo(String model);
 }
 
 /// Runs tasks beside the conversation (see [TasksReported]).

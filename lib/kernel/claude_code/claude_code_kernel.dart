@@ -1980,6 +1980,9 @@ class ClaudeCodeKernel
   @override
   bool get usageLimitApplies => _providerKey.isEmpty;
 
+  @override
+  bool usageLimitAppliesTo(String model) => _providerKeyOf(model).isEmpty;
+
   /// The usage limit is hit, to reset [at]; null, it no longer holds.
   void _limitHit(DateTime? at) {
     // A provider's limits are its own, and so is what it says of them.
