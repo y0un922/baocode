@@ -14,6 +14,7 @@ import 'package:path/path.dart' as p;
 import '../../base/smooth_scroll.dart';
 import '../../ide/file_service.dart';
 import '../../ide/ide_agent_edits.dart';
+import '../../ide/ide_code_diff.dart';
 import '../../ide/ide_code_editor.dart';
 import '../../ide/ide_hover.dart';
 import '../../ide/ide_image_preview.dart';
@@ -28,7 +29,6 @@ import '../../theme/codicons.dart';
 import '../../theme/material_file_icons.dart';
 import '../../theme/workbench_theme.dart' show themeColors;
 import '../../workspace/editor_launcher.dart' show openExternal;
-import '../chat_models.dart' show DiffLineType;
 import '../composer/composer_files.dart' show CopiedCode;
 import '../widgets/code_citation.dart' show CodeColorizer;
 import '../widgets/hover_builder.dart';
@@ -138,9 +138,10 @@ final class _Text extends _Loaded {
 }
 
 final class _Diff extends _Loaded {
-  const _Diff(this.rows, {this.deleted = false});
+  const _Diff(this.original, this.modified, {this.deleted = false});
 
-  final List<FileDiffRow> rows;
+  final String original;
+  final String modified;
   final bool deleted;
 }
 
@@ -347,10 +348,7 @@ class _FilePreviewState extends State<FilePreview> {
       if (text == null && error is! IdeFileNotFoundException) {
         loaded = _Failed(error!);
       } else {
-        // Compared off this isolate: seconds, for a file changed throughout.
-        final rows = await fileDiffAsync(original, text ?? '');
-        if (!mounted || load != _load) return;
-        loaded = _Diff(rows, deleted: text == null);
+        loaded = _Diff(original, text ?? '', deleted: text == null);
       }
     } else if (text == null) {
       loaded = _Failed(error!);
@@ -439,17 +437,8 @@ class _FilePreviewState extends State<FilePreview> {
         final now = await colors(text);
         if (now == null) return;
         byRow = [for (var i = 0; i < lines.length; i++) now.elementAtOrNull(i)];
-      case _Diff(:final rows):
-        final before = await colors(original);
-        final now = await colors(text);
-        if (before == null && now == null) return;
-        byRow = [
-          for (final row in rows)
-            row.type == DiffLineType.removed
-                ? before?.elementAtOrNull(row.original! - 1)
-                : now?.elementAtOrNull(row.modified! - 1),
-        ];
-      case _Failed():
+      // The diff editor highlights its own.
+      case _Diff() || _Failed():
         return;
     }
     if (!mounted || load != _load) return;
@@ -541,8 +530,7 @@ class _FilePreviewState extends State<FilePreview> {
       _ when _edit?.error != null => localizedFileError(l10n, _edit!.error!),
       _Text(noOriginal: true) => l10n.sidePanelNoOriginal,
       _Diff(deleted: true) => l10n.sidePanelDeleted,
-      _Diff(:final rows)
-          when rows.every((row) => row.type == DiffLineType.context) =>
+      _Diff(:final original, :final modified) when original == modified =>
         l10n.sidePanelUnchanged,
       _ => null,
     };
@@ -571,34 +559,19 @@ class _FilePreviewState extends State<FilePreview> {
               : Codicons.error,
           text: localizedFileError(context.l10n, error),
         );
-      case _Diff(:final rows):
-        final gutter = _gutter(context, rows.length);
-        return CodeTextScale(
-          child: _Lines(
-            key: ValueKey(('diff', _request.path)),
-            count: rows.length,
-            lineHeight: _lineHeight(context),
-            reveal: widget.reveal,
-            target: _diffTarget(rows),
-            width:
-                _widthOf(context, rows, () => rows.map((row) => row.text)) +
-                gutter * 2 +
-                20,
-            // Lines of the file as it is now, none taken out.
-            onCopy: (first, last, text) {
-              final copied = rows.sublist(first, last + 1);
-              if (copied.any((row) => row.modified == null)) return;
-              _copied(copied.first.modified!, copied.last.modified!, text);
-            },
-            row: (context, i, sideways) => _LineRow(
-              numbers: (rows[i].original, rows[i].modified),
-              type: rows[i].type,
-              text: rows[i].text,
-              colors: _colors.elementAtOrNull(i),
-              gutter: gutter,
-              sideways: sideways,
-            ),
-          ),
+      case _Diff(:final original, :final modified, :final deleted):
+        return IdeCodeDiff(
+          // Asked for again: scrolled back to the lines asked for.
+          key: ValueKey(('diff', _request.path, widget.reveal)),
+          path: _request.path,
+          original: original,
+          modified: modified,
+          line: _request.range?.start,
+          highlights: widget.highlights,
+          // Lines of the file as it is now.
+          onCopy: deleted
+              ? null
+              : (text, start, end) => _copied(start, end, text),
         );
       case _Text(:final lines):
         if (_markdown case final model? when !_source) {
@@ -627,8 +600,7 @@ class _FilePreviewState extends State<FilePreview> {
             width: _widthOf(context, lines, () => lines) + gutter + 20,
             onCopy: (first, last, text) => _copied(first + 1, last + 1, text),
             row: (context, i, sideways) => _LineRow(
-              numbers: (null, i + 1),
-              type: DiffLineType.context,
+              number: i + 1,
               text: lines[i],
               colors: _colors.elementAtOrNull(i),
               gutter: gutter,
@@ -691,20 +663,6 @@ class _FilePreviewState extends State<FilePreview> {
         ? null
         : FileLink.parseHref('x#$fragment')?.range;
     widget.onOpenFile?.call(FileOpenRequest(path, range: range));
-  }
-
-  /// The row of the line asked for (as it is now), else the first change.
-  int? _diffTarget(List<FileDiffRow> rows) {
-    if (_request.range?.start case final line?) {
-      final at = rows.indexWhere(
-        (row) =>
-            row.type != DiffLineType.context && row.modified == line ||
-            row.type == DiffLineType.removed && (row.original ?? 0) >= line,
-      );
-      if (at >= 0) return at;
-    }
-    final first = rows.indexWhere((row) => row.type != DiffLineType.context);
-    return first < 0 ? null : first;
   }
 
   static TextStyle _codeStyle(BuildContext context) =>
@@ -1013,13 +971,11 @@ class _RowSelection extends StaticSelectionContainerDelegate {
   }
 }
 
-/// One line: its numbers (before and now, for a diff), a `+` or `-`, its
-/// text; on the diff's colors, or the editor's range highlight where it
-/// is among the lines asked for.
+/// One line: its number and its text, on the editor's range highlight
+/// where it is among the lines asked for.
 class _LineRow extends StatelessWidget {
   const _LineRow({
-    required this.numbers,
-    required this.type,
+    required this.number,
     required this.text,
     required this.gutter,
     required this.sideways,
@@ -1027,9 +983,7 @@ class _LineRow extends StatelessWidget {
     this.marked = false,
   });
 
-  /// Before and now; the first null outside a diff.
-  final (int?, int?) numbers;
-  final DiffLineType type;
+  final int number;
   final String text;
   final double gutter;
   final ScrollController sideways;
@@ -1039,38 +993,10 @@ class _LineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = AppFonts.codeStyle(12).copyWith(height: 1.5);
-    final (before, now) = numbers;
-    final diff = before != null || type != DiffLineType.context;
-    final (marker, markerColor, background) = switch (type) {
-      DiffLineType.added => ('+', AppColors.added, AppColors.addedBackground),
-      DiffLineType.removed => (
-        '-',
-        AppColors.removed,
-        AppColors.removedBackground,
-      ),
-      DiffLineType.context => (
-        ' ',
-        AppColors.textFaint,
-        marked
-            ? themeColors['editor.rangeHighlightBackground']
-            : Colors.transparent,
-      ),
-    };
-    final numberStyle = style.copyWith(
-      color: marked
-          ? themeColors['editorLineNumber.activeForeground']
-          : themeColors['editorLineNumber.foreground'],
-    );
-    Widget number(int? n) => SizedBox(
-      width: gutter,
-      child: Text(
-        n == null ? '' : '$n',
-        textAlign: TextAlign.right,
-        style: numberStyle,
-      ),
-    );
+    final background = marked
+        ? themeColors['editor.rangeHighlightBackground']
+        : Colors.transparent;
     final shown = text.replaceAll('\t', '    ');
-    final gutterWidth = gutter * (diff ? 2 : 1) + 20;
     return ColoredBox(
       color: background,
       child: Stack(
@@ -1078,7 +1004,7 @@ class _LineRow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: gutterWidth),
+              SizedBox(width: gutter + 20),
               Expanded(
                 child: Text.rich(
                   TextSpan(
@@ -1105,26 +1031,25 @@ class _LineRow extends StatelessWidget {
                 offset: Offset(sideways.hasClients ? sideways.offset : 0, 0),
                 child: child,
               ),
-              // Keep the line numbers and change marker visible while the
-              // source scrolls underneath them.
+              // Keep the line numbers visible while the source scrolls
+              // underneath them.
               child: ColoredBox(
                 color: Color.alphaBlend(background, AppColors.code),
                 child: SelectionContainer.disabled(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (diff) number(before),
-                      number(now),
-                      SizedBox(
-                        width: 20,
-                        child: Text(
-                          diff ? marker : '',
-                          textAlign: TextAlign.center,
-                          style: style.copyWith(color: markerColor),
+                  child: SizedBox(
+                    width: gutter + 20,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 20),
+                      child: Text(
+                        '$number',
+                        textAlign: TextAlign.right,
+                        style: style.copyWith(
+                          color: marked
+                              ? themeColors['editorLineNumber.activeForeground']
+                              : themeColors['editorLineNumber.foreground'],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
