@@ -1436,7 +1436,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cmdSidePanelFiles => 'Show Agent Files';
 
   @override
-  String get cmdSidePanelTerminal => 'Show Agent Terminals';
+  String get cmdSidePanelTerminal => 'Toggle Agent Terminal';
+
+  @override
+  String get cmdSidePanelNewTerminal => 'New Agent Terminal';
 
   @override
   String get cmdSidePanelCloseTab => 'Close Side Panel Tab';

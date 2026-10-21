@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bao_editor/monaco/flutter/keybinding_entry.dart';
 import 'package:baocode/chat/chat_screen.dart';
+import 'package:baocode/chat/side_panel/side_panel_view.dart';
 import 'package:baocode/ide/ide_hover.dart';
 import 'package:baocode/ide/terminal/terminal_instance.dart';
+import 'package:baocode/ide/terminal/terminal_view.dart';
 import 'package:baocode/keybindings/keybinding_service.dart';
 import 'package:baocode/main.dart';
 import 'package:baocode/workspace/chat_terminal.dart';
@@ -177,6 +179,57 @@ void main() {
     expect(ptys, hasLength(2));
     expect(_terminals(tester).current!.instances, hasLength(2));
     expect(ptys.first.written, isNot(contains('`')));
+  }, variant: _mac);
+
+  testWidgets('⌥⌘T shows the side panel\'s terminal, the keyboard in it, '
+      'and from it hides the panel; ⇧⌥⌘T makes another', (tester) async {
+    final ptys = <FakePty>[];
+    await _pumpApp(tester, terminalBackend: fakeTerminalBackend(ptys));
+    Future<void> settle() async {
+      await _settle(tester);
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    final sidePanel = find.byType(AgentSidePanelView);
+    TerminalInstance shown() =>
+        tester.widget<TerminalView>(find.byType(TerminalView)).instance;
+    expect(sidePanel, findsNothing);
+
+    // None open: one is made.
+    await press(tester, LogicalKeyboardKey.keyT, meta: true, alt: true);
+    await settle();
+    expect(sidePanel, findsOneWidget);
+    expect(ptys, hasLength(1));
+    final first = shown();
+    expect(first.focusNode.hasFocus, isTrue);
+
+    // From it, hidden; the terminal runs on, and the keys never reach it.
+    await press(tester, LogicalKeyboardKey.keyT, meta: true, alt: true);
+    await settle();
+    expect(sidePanel, findsNothing);
+    expect(ptys.single.kills, isEmpty);
+    expect(ptys.single.written, isEmpty);
+
+    // Shown again, the same one, the keyboard in it.
+    await press(tester, LogicalKeyboardKey.keyT, meta: true, alt: true);
+    await settle();
+    expect(sidePanel, findsOneWidget);
+    expect(ptys, hasLength(1));
+    expect(shown(), same(first));
+    expect(first.focusNode.hasFocus, isTrue);
+
+    // Another, in front and focused.
+    await press(
+      tester,
+      LogicalKeyboardKey.keyT,
+      meta: true,
+      alt: true,
+      shift: true,
+    );
+    await settle();
+    expect(ptys, hasLength(2));
+    expect(shown(), isNot(same(first)));
+    expect(shown().focusNode.hasFocus, isTrue);
   }, variant: _mac);
 
   testWidgets('each project has its own terminals: the panel follows the '

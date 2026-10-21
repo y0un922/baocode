@@ -3298,8 +3298,56 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     if (_sidePanel.focusNode.hasFocus)
       ChatCommandIds.sidePanelCloseTab: _closeSidePanelTab,
     for (final section in alwaysShownSections)
-      section.command!: () => _showSidePanelSection(section),
+      if (section != SidePanelSection.terminal)
+        section.command!: () => _showSidePanelSection(section),
+    ChatCommandIds.sidePanelTerminal: _toggleSidePanelTerminal,
+    ChatCommandIds.sidePanelNewTerminal: () =>
+        _showSidePanelTerminal(fresh: true),
   };
+
+  /// Toggle Agent Terminal (⌥⌘T): the side panel's terminal, the keyboard
+  /// in it; from it, the panel hidden and the keyboard back in the chat.
+  void _toggleSidePanelTerminal() {
+    final thread = _agentThread ?? _workspace.current;
+    if (thread == null) return;
+    if (_sidePanelShown &&
+        !_sidePanelHidden &&
+        _sidePanel.tabsOf(thread.session).section ==
+            SidePanelSection.terminal &&
+        _sidePanel.focusNode.hasFocus) {
+      _sidePanel.hide();
+      _focusCurrentChat();
+      return;
+    }
+    _showSidePanelTerminal(fresh: false);
+  }
+
+  /// The side panel's terminal page, the keyboard in its terminal in front
+  /// (else the last open); a new one if [fresh], or where there is none.
+  void _showSidePanelTerminal({required bool fresh}) {
+    final thread = _agentThread ?? _workspace.current;
+    if (thread == null) return;
+    final service = _terminals?.sidePanelTerminals(thread.project.path);
+    if (service == null) {
+      return _showSidePanelSection(SidePanelSection.terminal);
+    }
+    final tabs = _sidePanel.tabsOf(thread.session);
+    final live = service.instances;
+    final shell = fresh
+        ? service.create()
+        : switch (tabs.terminal) {
+                final TerminalInstance shell when live.contains(shell) => shell,
+                _ => null,
+              } ??
+              tabs.terminals
+                  .whereType<TerminalInstance>()
+                  .where(live.contains)
+                  .lastOrNull ??
+              live.lastOrNull ??
+              service.create();
+    _sidePanel.openTerminal(thread.session, shell);
+    WidgetsBinding.instance.addPostFrameCallback((_) => shell.focus());
+  }
 
   /// Close Tab, from the side panel; the focus stays there, for the next.
   void _closeSidePanelTab() {

@@ -2825,8 +2825,14 @@ abstract class AppLocalizations {
   /// No description provided for @cmdSidePanelTerminal.
   ///
   /// In en, this message translates to:
-  /// **'Show Agent Terminals'**
+  /// **'Toggle Agent Terminal'**
   String get cmdSidePanelTerminal;
+
+  /// No description provided for @cmdSidePanelNewTerminal.
+  ///
+  /// In en, this message translates to:
+  /// **'New Agent Terminal'**
+  String get cmdSidePanelNewTerminal;
 
   /// No description provided for @cmdSidePanelCloseTab.
   ///

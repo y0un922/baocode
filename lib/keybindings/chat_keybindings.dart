@@ -79,7 +79,13 @@ abstract final class ChatCommandIds {
   static const toggleSidePanelPosition = 'baocode.chat.toggleSidePanelPosition';
   static const sidePanelChanges = 'baocode.chat.sidePanel.changes';
   static const sidePanelFiles = 'baocode.chat.sidePanel.files';
+
+  /// The side panel's terminal, the keyboard in it (one made where none
+  /// is); from it, the panel hidden and the keyboard back in the chat.
   static const sidePanelTerminal = 'baocode.chat.sidePanel.terminal';
+
+  /// A new terminal in the side panel, the keyboard in it.
+  static const sidePanelNewTerminal = 'baocode.chat.sidePanel.newTerminal';
 
   /// Closes the side panel's tab in front, on its page shown; hides the
   /// panel where the page has none.
@@ -206,7 +212,8 @@ final List<CommandInfo> chatExtraCommands = [
     (ChatCommandIds.toggleSidePanelPosition, 'Toggle Side Panel Position'),
     (ChatCommandIds.sidePanelChanges, 'Show Agent Changes'),
     (ChatCommandIds.sidePanelFiles, 'Show Agent Files'),
-    (ChatCommandIds.sidePanelTerminal, 'Show Agent Terminals'),
+    (ChatCommandIds.sidePanelTerminal, 'Toggle Agent Terminal'),
+    (ChatCommandIds.sidePanelNewTerminal, 'New Agent Terminal'),
     (ChatCommandIds.sidePanelCloseTab, 'Close Side Panel Tab'),
     (ChatCommandIds.closeTab, 'Close Chat'),
     (ChatCommandIds.focusInput, 'Focus Chat Input'),
@@ -426,6 +433,12 @@ final List<KeybindingEntry> chatExtraKeybindings = [
     key: 'ctrl+alt+t',
     mac: 'alt+cmd+t',
     command: ChatCommandIds.sidePanelTerminal,
+    when: _window,
+  ),
+  const KeybindingEntry(
+    key: 'ctrl+shift+alt+t',
+    mac: 'shift+alt+cmd+t',
+    command: ChatCommandIds.sidePanelNewTerminal,
     when: _window,
   ),
   // A chat's.
