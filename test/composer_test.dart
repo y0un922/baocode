@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -543,6 +544,25 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
+  testWidgets('focused, the input does not draw on every frame: Quill\'s '
+      'hidden caret does not fade in and out on Apple platforms', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    await pumpScreen(tester);
+    await typeText(tester, 'Plan');
+    // What typing set off (the send button's coming in) done.
+    await tester.pump(const Duration(milliseconds: 500));
+    // Over a few of the caret's blinks: no animation, only its timers.
+    var animating = 0;
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (SchedulerBinding.instance.transientCallbackCount > 0) animating++;
+    }
+    expect(animating, 0);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
   testWidgets('tokens never change the line height', (tester) async {
     await pumpScreen(tester);
     double height() => tester.getSize(find.byType(ChatComposer)).height;
@@ -912,9 +932,10 @@ void main() {
       await composerController(tester).clipboardPaste();
       await tester.pump();
       expect(
-        composerController(tester).document.toDelta().toList().where(
-          (op) => op.data is Map,
-        ),
+        composerController(tester).document
+            .toDelta()
+            .toList()
+            .where((op) => op.data is Map),
         hasLength(1),
       );
 

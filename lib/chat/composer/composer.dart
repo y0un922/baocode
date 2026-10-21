@@ -1848,6 +1848,26 @@ class ChatComposerState extends State<ChatComposer>
   }
 
   Widget _buildQuill(BuildContext context) {
+    // Quill's own caret is hidden (ComposerCaret paints this one), but on
+    // Apple platforms Quill fades it in and out all the same once anything
+    // is typed: an animation on every frame for as long as the input has
+    // the focus, the app never at rest. Its theme's platform is what makes
+    // it fade (`ThemeData.isCupertino`), and besides that only picks the
+    // hidden caret's shape, fallback selection colors (the app's theme
+    // sets them) and touch long presses: not an Apple one, the caret
+    // blinks without fading, twice a second.
+    final theme = Theme.of(context);
+    return Theme(
+      data: switch (theme.platform) {
+        TargetPlatform.iOS ||
+        TargetPlatform.macOS => theme.copyWith(platform: TargetPlatform.linux),
+        _ => theme,
+      },
+      child: _buildQuillEditor(),
+    );
+  }
+
+  Widget _buildQuillEditor() {
     return QuillEditor(
       controller: _controller,
       focusNode: _focusNode,
