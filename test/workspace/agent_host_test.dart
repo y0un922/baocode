@@ -151,7 +151,23 @@ void main() {
       'An agent started by another cannot start agents of its own.',
     );
     expect((await host.run(key, ['wait', 'a2'])).ok, isFalse);
-    worker.session.stop();
+
+    // Working again, closed: stopped, its pane gone, the agent listed.
+    expect((await host.run(key, ['send', 'a1', 'Once more'])).ok, isTrue);
+    await tester.pump(const Duration(seconds: 1));
+    expect(worker.session.isStreaming, isTrue);
+    expect(
+      (await host.run(key, ['close', 'a1'])).text,
+      'Closed a1: it stays in the sidebar.',
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(worker.session.isStreaming, isFalse);
+    expect(workspace.grid.panes, [caller]);
+    expect(workspace.threads, contains(worker));
+    expect(
+      (await host.run(key, ['close', 'a1'])).text,
+      'a1 has no pane open: it is in the sidebar.',
+    );
     await tester.pump(const Duration(seconds: 5));
   });
 

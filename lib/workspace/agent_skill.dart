@@ -59,6 +59,7 @@ $command send a1 "Now write a test for the bug you found"
 $command wait a1 --timeout 300
 $command read a1
 $command stop a1
+$command close a1
 $command list
 $command help
 ```
@@ -66,7 +67,7 @@ $command help
 - `start [--agent claude|codex|pi] [--model <id>] [--effort <level>] <prompt>` starts an agent in your project on `<prompt>` and prints its id (`a1`, `a2`, …) on its first line. Without `--agent`, it is your own kind.
 - `wait <id> [--timeout <seconds>]` waits until it has answered, then prints its answer. By default it waits up to 100 seconds; if the agent is still working it says so: run `wait` again. A longer `--timeout` must stay under how long your shell lets a command run.
 - `send <id> <message>` sends it another message, once it has answered.
-- `read <id>` prints its last answer; `stop <id>` stops it; `list` shows the agents you started and what each is doing.
+- `read <id>` prints its last answer; `stop <id>` stops it; `close <id>` closes its pane (stopping it first; it stays in the sidebar); `list` shows the agents you started and what each is doing.
 
 ## How to work with them
 
@@ -75,6 +76,7 @@ $command help
 - They ask the user before what they run. While one waits for the user's approval, `wait` says so: tell the user, and wait again.
 - Start only as many as the work needs. An agent you started cannot start agents of its own.
 - Check what an agent says it did before relying on it.
+- Close the panes of the agents you are done with (`close <id>`).
 - In Codex's sandbox, the command cannot reach BaoCode: run it with escalated permissions (outside the sandbox).
 ''';
   }

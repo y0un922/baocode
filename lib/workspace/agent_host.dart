@@ -106,6 +106,7 @@ class AgentHost {
         'wait' => await _wait(_worker(caller, rest), _timeout(rest.skip(1))),
         'read' => _read(_worker(caller, rest)),
         'stop' => _stop(_worker(caller, rest)),
+        'close' => _close(_worker(caller, rest)),
         'list' => _list(caller),
         'help' || '--help' || '-h' => const AgentReply(usage),
         _ => AgentReply.error('Unknown command "$command".\n\n$usage'),
@@ -127,6 +128,8 @@ Usage: baocode-agent <command>
                        then print its answer.
   read <id>            Print its last answer.
   stop <id>            Stop what it is doing.
+  close <id>           Close its pane, stopping it first: it stays in the
+                       sidebar.
   list                 The agents you started, and what each is doing.''';
 
   AgentReply _start(AgentThread caller, List<String> arguments) {
@@ -320,6 +323,20 @@ Usage: baocode-agent <command>
     if (!_working(worker)) return AgentReply('${worker.id} is idle.');
     worker.thread.session.stop();
     return AgentReply('Stopping ${worker.id}.');
+  }
+
+  /// Closes [worker]'s pane, as the user would (the agent stays in the
+  /// sidebar), stopping it first.
+  AgentReply _close(_Worker worker) {
+    if (_working(worker)) worker.thread.session.stop();
+    if (!workspace.grid.contains(worker.thread)) {
+      return AgentReply('${worker.id} has no pane open: it is in the sidebar.');
+    }
+    workspace.closePane(worker.thread);
+    if (workspace.grid.contains(worker.thread)) {
+      return AgentReply('${worker.id} is in the only pane left: kept open.');
+    }
+    return AgentReply('Closed ${worker.id}: it stays in the sidebar.');
   }
 
   AgentReply _list(AgentThread caller) {
