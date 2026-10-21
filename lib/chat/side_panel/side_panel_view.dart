@@ -158,6 +158,19 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
 
   AgentSidePanel get _panel => widget.panel;
 
+  /// The widest it shows in [room]: beside the conversations, what they
+  /// leave at their least; over them, all but a strip of them.
+  double _most(double room) => _overlay
+      ? math.max(0.0, room - 48)
+      : math.max(
+          0.0,
+          room - AgentSidePanelArea.minChat - AgentSidePanelArea.sashWidth,
+        );
+
+  /// How wide it shows in [room]: as wide as it was made, as far as there
+  /// is room for.
+  double _shownWidth(double room) => math.min(_panel.width, _most(room));
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _panel,
@@ -175,17 +188,7 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
         final atLeft = _panel.atLeft;
         final beside = shown && !overlay;
         final rail = !shown && widget.rail != null;
-        final width = overlay
-            ? math.min(_panel.width, math.max(0.0, room - 48))
-            : math.max(
-                0.0,
-                math.min(
-                  _panel.width,
-                  room -
-                      AgentSidePanelArea.minChat -
-                      AgentSidePanelArea.sashWidth,
-                ),
-              );
+        final width = _shownWidth(room);
         // Each child keyed: the conversations and the panel are never
         // built anew as the rail, the scrim or the drag's cursor come and
         // go (the panel built anew mid-drag would drop the drag, and
@@ -316,20 +319,26 @@ class _AgentSidePanelAreaState extends State<AgentSidePanelArea> {
       key: const ValueKey('side-panel-sash'),
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
+      // From the width it shows, not the one it was made: narrower where
+      // the room is short, the sash would wait for the pointer to cover the
+      // difference before it moved.
       onHorizontalDragStart: (details) => setState(() {
         _dragging = true;
-        _dragStart = (x: details.globalPosition.dx, width: _panel.width);
+        _dragStart = (
+          x: details.globalPosition.dx,
+          width: _shownWidth(context.size?.width ?? double.infinity),
+        );
       }),
       onHorizontalDragUpdate: (details) {
         final start = _dragStart;
         if (start == null) return;
-        final room =
-            (context.size?.width ?? double.infinity) -
-            AgentSidePanelArea.minChat;
+        final room = context.size?.width ?? double.infinity;
         final moved = details.globalPosition.dx - start.x;
+        // No wider than it shows: past that the sash waits, and follows
+        // again once the pointer is back.
         _panel.width = math.min(
           atLeft ? start.width + moved : start.width - moved,
-          math.max(AgentSidePanel.minWidth, room),
+          math.max(AgentSidePanel.minWidth, _most(room)),
         );
       },
       onHorizontalDragEnd: (_) => _endDrag(),

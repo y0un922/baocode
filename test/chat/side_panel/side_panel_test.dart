@@ -1350,6 +1350,32 @@ void main() {
     expect(find.byType(FilePreview), findsOneWidget);
   });
 
+  testWidgets('the panel\'s edge follows the pointer from where it shows, '
+      'though it was made wider than there is room for', (tester) async {
+    final (:panel, session: _, files: _) = await _pumpChat(tester);
+    panel.show();
+    // Room beside the conversations for 400; made 640, its default.
+    tester.view.physicalSize = const Size(
+      400 + AgentSidePanelArea.minChat + AgentSidePanelArea.sashWidth,
+      800,
+    );
+    await tester.pumpAndSettle();
+    expect(panel.width, AgentSidePanel.defaultWidth);
+    final sash = find.byKey(const ValueKey('side-panel-sash'));
+    final x = tester.getCenter(sash).dx;
+    // Narrower at once, not once the pointer has gone the 240 between.
+    await tester.drag(sash, const Offset(100, 0));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(sash).dx, moreOrLessEquals(x + 100));
+    // Back as far as it shows, where it was; no further.
+    await tester.drag(sash, const Offset(-150, 0));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(sash).dx, moreOrLessEquals(x));
+    await tester.drag(sash, const Offset(60, 0));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(sash).dx, moreOrLessEquals(x + 60));
+  });
+
   testWidgets('a room short a while only (the sidebar giving way) does not '
       'put the panel over the conversations', (tester) async {
     final (:panel, :session, files: _) = await _pumpChat(tester);
