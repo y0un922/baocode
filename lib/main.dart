@@ -11,6 +11,7 @@ import 'package:bao_editor/textmate/textmate_syntax.dart';
 
 import 'package:bao_editor/monaco/flutter/language_assets.dart';
 
+import 'base/smooth_scroll.dart' show BaoScrollBehavior;
 import 'browser/browser_bridge.dart';
 import 'browser/browser_tools.dart' show BrowserHistory;
 import 'chat/composer/composer_files.dart' show ComposerFile, pastedAsPicture;
@@ -730,6 +731,7 @@ class _BaoCodeAppState extends State<BaoCodeApp> {
     title: 'BaoCode',
     debugShowCheckedModeBanner: false,
     theme: buildAppTheme(),
+    scrollBehavior: const BaoScrollBehavior(),
     builder: (context, child) => ValueListenableBuilder<int>(
       valueListenable: CodeFont.uiScale,
       builder: (context, percent, scaled) {

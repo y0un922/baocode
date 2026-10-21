@@ -27,6 +27,7 @@ import 'editor_view_painters.dart';
 import 'editor_view_styles.dart';
 import 'editor_view_theme.dart';
 import 'text_input_window.dart';
+import 'trackpad_fling.dart';
 import 'viewport_layout.dart';
 import 'wheel_glide.dart';
 
@@ -1018,9 +1019,15 @@ class _EditorSurfaceState extends State<EditorSurface>
       math.max(0.0, _scrollWidth(layout) - layout.viewportSize.width);
 
   /// Scrolls the view, stopping a wheel's notches gliding it unless it is
-  /// theirs ([wheel]).
-  void _setScroll({double? top, double? left, bool wheel = false}) {
+  /// theirs ([wheel]), and a trackpad's fling unless it is that ([fling]).
+  void _setScroll({
+    double? top,
+    double? left,
+    bool wheel = false,
+    bool fling = false,
+  }) {
     if (!wheel) _wheel?.stop();
+    if (!fling) _fling?.stop();
     final layout = _layout;
     if (layout == null) return;
     final nextTop = (top ?? _scrollTop).clamp(0.0, _maxScrollTop(layout));
@@ -1053,6 +1060,7 @@ class _EditorSurfaceState extends State<EditorSurface>
     final layout = _layout;
     if (layout == null) return;
     _scrollToCaret = false;
+    _fling?.stop();
     (_wheel ??= WheelGlider(vsync: this, move: _glide)).add(
       Offset(dx, dy),
       at: Offset(_scrollLeft, _scrollTop),
@@ -1065,6 +1073,16 @@ class _EditorSurfaceState extends State<EditorSurface>
     final left = _scrollLeft + by.dx;
     final top = _scrollTop + by.dy;
     _setScroll(top: top, left: left, wheel: true);
+    return (x: _scrollLeft == left, y: _scrollTop == top);
+  }
+
+  /// A trackpad's scrolling going on as the fingers lift, as a list's.
+  TrackpadFling? _fling;
+
+  ({bool x, bool y}) _flingBy(Offset by) {
+    final left = _scrollLeft + by.dx;
+    final top = _scrollTop + by.dy;
+    _setScroll(top: top, left: left, fling: true);
     return (x: _scrollLeft == left, y: _scrollTop == top);
   }
 
@@ -1348,6 +1366,7 @@ class _EditorSurfaceState extends State<EditorSurface>
   );
 
   void _onPointerDown(PointerDownEvent event) {
+    _fling?.stop();
     if (event.kind == PointerDeviceKind.mouse &&
         event.buttons == kSecondaryMouseButton) {
       _onContextMenuDown(event);
@@ -1729,9 +1748,28 @@ class _EditorSurfaceState extends State<EditorSurface>
     });
   }
 
+  void _onPanZoomStart(PointerPanZoomStartEvent event) {
+    (_fling ??= TrackpadFling(
+      vsync: this,
+      move: _flingBy,
+    )).start(context, event);
+  }
+
   void _onPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     // Trackpad scrolling: content follows the fingers pixel for pixel.
     _scrollBy(-event.localPanDelta.dx, -event.localPanDelta.dy);
+    _fling?.update(event);
+  }
+
+  void _onPanZoomEnd(PointerPanZoomEndEvent event) {
+    final layout = _layout;
+    if (layout == null) return;
+    _fling?.end(
+      context,
+      at: Offset(_scrollLeft, _scrollTop),
+      max: Offset(_maxScrollLeft(layout), _maxScrollTop(layout)),
+      viewport: layout.viewportSize,
+    );
   }
 
   void _onHover(PointerHoverEvent event) {
@@ -2501,7 +2539,9 @@ class _EditorSurfaceState extends State<EditorSurface>
             onPointerUp: _onPointerUp,
             onPointerCancel: _onPointerUp,
             onPointerSignal: _onPointerSignal,
+            onPointerPanZoomStart: _onPanZoomStart,
             onPointerPanZoomUpdate: _onPanZoomUpdate,
+            onPointerPanZoomEnd: _onPanZoomEnd,
             // What the editor paints as it is typed in (its gutter, the
             // current line) is painted again alone, not with the window
             // around it.
@@ -2563,6 +2603,7 @@ class _EditorSurfaceState extends State<EditorSurface>
     _autoScrollTimer?.cancel();
     _scrollbarHideTimer?.cancel();
     _wheel?.dispose();
+    _fling?.dispose();
     _scrollbarFade.dispose();
     _caretVisible.dispose();
     _minimapCache.dispose();
