@@ -610,6 +610,9 @@ class _ChatScreenState extends State<ChatScreen>
     links.open(opened);
   }
 
+  void _openCode(String path, int start, int end) =>
+      _openFile(FileOpenRequest(path, range: FileLineRange(start, end)));
+
   /// The files `@` offers: [ChatScreen.fileMentions]' with the kernel's, or
   /// the kernel's alone; null when neither looks.
   Future<List<Suggestion>> Function(String query)? _suggestFiles(String? root) {
@@ -630,11 +633,9 @@ class _ChatScreenState extends State<ChatScreen>
         final root = _session.root;
         Widget scoped = CodeCitationScope(
           root: root,
-          onOpen: links == null
-              ? widget.onOpenCode
-              : (path, start, end) => _openFile(
-                  FileOpenRequest(path, range: FileLineRange(start, end)),
-                ),
+          // A method's, the same with every change of the session's: a new
+          // one would build every code block in the conversation again.
+          onOpen: links == null ? widget.onOpenCode : _openCode,
           colorize: widget.colorizeCode,
           colorizeBlock: widget.colorizeCodeBlock,
           child: ComposerVocabulary(

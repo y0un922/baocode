@@ -36,6 +36,7 @@ import 'widgets/edge_fade_mask.dart';
 import 'widgets/content_image.dart' show ChatImage, ChatImages;
 import 'widgets/fold_line.dart';
 import 'widgets/hover_builder.dart';
+import 'widgets/lazy_segment.dart' show SelectionEndHolder;
 import 'widgets/turn_footer.dart';
 import 'widgets/user_message_bubble.dart';
 
@@ -461,6 +462,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
     resolve: _resolveItemPoint,
     beyondBuilt: _beyondBuiltItems,
     plainTextOf: _plainTextOf,
+    itemCount: () => _feed.itemCount,
     onDragEdge: _autoScrollToward,
   );
   bool _reselectScheduled = false;
@@ -2745,11 +2747,14 @@ class _ItemSelectionScopeState extends State<_ItemSelectionScope> {
   }
 }
 
-class _ItemRegistrar implements SelectionRegistrar {
+class _ItemRegistrar implements SelectionRegistrar, SelectionEndHolder {
   _ItemRegistrar(this.delegate, this.index);
 
   final _ChatSelectionDelegate delegate;
   int index;
+
+  @override
+  bool get holdsSelectionEnd => delegate._holdsEnd(index);
 
   @override
   void add(Selectable selectable) =>
@@ -2786,6 +2791,7 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
     required this.resolve,
     required this.beyondBuilt,
     required this.plainTextOf,
+    required this.itemCount,
     required this.onDragEdge,
   });
 
@@ -2797,6 +2803,7 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
   /// Where to put an edge for the unbuilt item at an index.
   final Offset? Function(int index) beyondBuilt;
   final String Function(int index) plainTextOf;
+  final int Function() itemCount;
   final void Function(Offset globalPosition) onDragEdge;
 
   /// A Shift+click is in progress: it moves the end and keeps the start.
@@ -2809,6 +2816,11 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
   final Map<Selectable, _ItemRegistrar> _items = {};
   _SelectionEdge? _start;
   _SelectionEdge? _end;
+
+  /// The selection is the whole history (Select All), not only what was
+  /// built when it was made: its ends are the first item's start and the
+  /// last's end, whole when not built.
+  bool _all = false;
   SelectionEdgeUpdateEvent? _dragEnd;
 
   /// Selected text of the end items, for when they are no longer built.
@@ -2825,6 +2837,12 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
   }
 
   int _itemOf(Selectable selectable) => _items[selectable]?.index ?? -1;
+
+  /// Whether item [index] holds an end of what is selected (not of a
+  /// click's collapsed selection).
+  bool _holdsEnd(int index) =>
+      (_all || value.status == SelectionStatus.uncollapsed) &&
+      (_start?.point.index == index || _end?.point.index == index);
 
   @override
   Comparator<Selectable> get compareOrder => (a, b) {
@@ -2899,14 +2917,32 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
         return SelectionResult.none;
       case ClearSelectionEvent():
         _start = _end = null;
+        _all = false;
         _dragEnd = null;
         _endText.clear();
         return super.dispatchSelectionEvent(event);
+      // All of it, not the built items alone: the ends in the model, which
+      // the items built later (scrolled to) are selected from.
+      case SelectAllSelectionEvent() when itemCount() > 0:
+        result = super.dispatchSelectionEvent(event);
+        const granularity = TextGranularity.character;
+        _start = (
+          point: (index: 0, local: Offset.zero),
+          granularity: granularity,
+        );
+        _end = (
+          point: (index: itemCount() - 1, local: const Offset(1e6, 1e6)),
+          granularity: granularity,
+        );
+        _all = true;
+        _dragEnd = null;
       case SelectionEdgeUpdateEvent(type: SelectionEventType.startEdgeUpdate):
+        _all = false;
         _start = _edgeAt(event.globalPosition, event.granularity);
         _refreshEdgeLocations();
         result = super.dispatchSelectionEvent(event);
       case SelectionEdgeUpdateEvent():
+        _all = false;
         _end = _edgeAt(event.globalPosition, event.granularity);
         _dragEnd = event;
         _refreshEdgeLocations();
@@ -2915,12 +2951,14 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
       case SelectAllSelectionEvent() ||
           SelectWordSelectionEvent() ||
           SelectParagraphSelectionEvent():
+        _all = false;
         result = super.dispatchSelectionEvent(event);
         _start = _edgeFromGeometry(end: false);
         _end = _edgeFromGeometry(end: true);
         _dragEnd = null;
       case GranularlyExtendSelectionEvent(:final isEnd) ||
           DirectionallyExtendSelectionEvent(:final isEnd):
+        _all = false;
         _refreshEdgeLocations();
         result = super.dispatchSelectionEvent(event);
         if (isEnd) {
@@ -3037,6 +3075,7 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
   /// here or in a scroll view's (Flutter's).
   @override
   void didChangeSelectables() {
+    _reconcile();
     if (_changePending) return;
     _changePending = true;
     scheduleMicrotask(() {
@@ -3053,6 +3092,29 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
 
   bool _changePending = false;
   bool _disposed = false;
+
+  /// Lists each piece of registered text once, and nothing else.
+  ///
+  /// Flutter merges the text added in a frame into the list in a loop that
+  /// also brings what it merges up to date with the selection; text that
+  /// goes meanwhile (a code block's scroll view, whose content changes as
+  /// it streams) is taken off what is to be merged, not off the list it is
+  /// merged into, and stays there: unregistered, disposed, still sent the
+  /// selection's events (which throw, and leave the selection half done:
+  /// a drag then selects nothing). Text added in that loop is dropped the
+  /// same way. Called after each merge.
+  void _reconcile() {
+    final listed = <Selectable>{};
+    for (final selectable in [...selectables]) {
+      if (!_items.containsKey(selectable) || !listed.add(selectable)) {
+        remove(selectable);
+      }
+    }
+    for (final selectable in _items.keys) {
+      // Waiting to be merged, or lost: add takes either once.
+      if (!listed.contains(selectable)) add(selectable);
+    }
+  }
 
   @override
   void dispose() {
@@ -3129,12 +3191,14 @@ class _ChatSelectionDelegate extends StaticSelectionContainerDelegate {
       buffer.write(text);
     }
 
-    write(_builtText(first) ?? _endText[first]);
+    // All of it: an end not built is its whole item.
+    String? whole(int index) => _all ? plainTextOf(index) : null;
+    write(_builtText(first) ?? _endText[first] ?? whole(first));
     if (last != first) {
       for (var index = first + 1; index < last; index++) {
         write(plainTextOf(index));
       }
-      write(_builtText(last) ?? _endText[last]);
+      write(_builtText(last) ?? _endText[last] ?? whole(last));
     }
     return buffer.isEmpty
         ? null
