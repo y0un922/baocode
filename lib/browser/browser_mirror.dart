@@ -13,6 +13,7 @@ import '../l10n/l10n.dart';
 import '../settings/settings_dialog.dart' show SettingsOpener, SettingsSection;
 import '../theme/app_theme.dart';
 import '../theme/codicons.dart';
+import '../theme/workbench_theme.dart' show themeColors;
 import 'browser_bridge.dart';
 import 'browser_keys.dart';
 import 'browser_tools.dart';
@@ -497,19 +498,23 @@ class _BrowserMirrorState extends State<BrowserMirror> with TextInputClient {
   // --- The pointer, at the page's point (CSS pixels) under it.
 
   /// Where the frame is drawn in [size]: as big as fits, at the top.
+  /// Room round the page, as a card in the view's middle: the browser's
+  /// window is rarely the panel's shape.
+  static const _margin = 12.0;
+
   Rect _frameRect(Size size) {
     final page = _pageSize;
     if (page == null || page.isEmpty) return Offset.zero & size;
-    final scale = (size.width / page.width).clamp(
+    final room = (Offset.zero & size).deflate(_margin);
+    if (room.isEmpty) return Offset.zero & size;
+    final scale = (room.width / page.width).clamp(
       0.0,
-      size.height / page.height,
+      room.height / page.height,
     );
-    final width = page.width * scale;
-    return Rect.fromLTWH(
-      (size.width - width) / 2,
-      0,
-      width,
-      page.height * scale,
+    return Rect.fromCenter(
+      center: room.center,
+      width: page.width * scale,
+      height: page.height * scale,
     );
   }
 
@@ -749,11 +754,32 @@ class _BrowserMirrorState extends State<BrowserMirror> with TextInputClient {
                 if (frame != null)
                   Positioned.fromRect(
                     rect: _frameRect(size),
-                    child: Image.memory(
-                      frame,
-                      gaplessPlayback: true,
-                      fit: BoxFit.fill,
-                      filterQuality: FilterQuality.medium,
+                    child: DecoratedBox(
+                      position: DecorationPosition.foreground,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.partBorder),
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeColors['widget.shadow'],
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.memory(
+                            frame,
+                            gaplessPlayback: true,
+                            fit: BoxFit.fill,
+                            filterQuality: FilterQuality.medium,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 if (detached != null)
