@@ -89,6 +89,9 @@ function showState() {
           ? 'BaoCode: connected'
           : 'BaoCode: not running',
   });
+  listing.then(() => {
+    for (const id of listed) mark(id);
+  });
 }
 
 // Whether BaoCode is connected, given a moment to: a worker just woken has
@@ -229,6 +232,8 @@ async function call(api, args) {
 
 async function guard(space, name, args) {
   const [first, second] = args;
+  const grouped = space === 'tabGroups' || ['group', 'ungroup'].includes(name) || first?.groupId !== undefined;
+  if (grouped && !(await hasGroups())) throw new Error('This browser has no tab groups.');
   if (space === 'tabs') {
     const ids =
       typeof first === 'number'
@@ -358,14 +363,73 @@ chrome.tabs.onCreated.addListener(async (tab) => {
   }
 });
 
-// --- The tabs shared: the "BaoCode" group's, in any window.
+// --- The tabs shared: the "BaoCode" group's, in any window; in a browser
+// without tab groups (Arc: its tabGroups never answer), those listed here,
+// each marked on the toolbar button.
+
+let grouping = null;
+
+function hasGroups() {
+  grouping ??= Promise.race([
+    chrome.tabGroups.query({}).then(
+      () => true,
+      () => false,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve(false), 2000)),
+  ]);
+  return grouping;
+}
+
+// The tabs shared without groups: kept while the worker sleeps, not over
+// the browser's restart.
+const listed = new Set();
+const listing = Promise.race([
+  chrome.storage.session.get('listed').then(
+    (stored) => {
+      for (const id of stored.listed ?? []) listed.add(id);
+    },
+    () => {},
+  ),
+  new Promise((resolve) => setTimeout(resolve, 2000)),
+]);
+
+async function list(tabId, yes) {
+  await listing;
+  if (yes) listed.add(tabId);
+  else listed.delete(tabId);
+  chrome.storage.session.set({ listed: [...listed] }).catch(() => {});
+  await mark(tabId);
+}
+
+// The button's badge on a tab shared without groups (none while BaoCode is
+// away or recording: the button's own shows).
+async function mark(tabId) {
+  const on = listed.has(tabId) && connected && watching === null;
+  try {
+    await chrome.action.setBadgeText({ tabId, text: on ? 'ON' : null });
+    if (on) await chrome.action.setBadgeBackgroundColor({ tabId, color: '#2e7d32' });
+  } catch (error) {
+    // Closed.
+  }
+}
 
 async function groups() {
+  if (!(await hasGroups())) return [];
   return chrome.tabGroups.query({ title: GROUP });
 }
 
 async function sharedTabs() {
   const tabs = [];
+  if (!(await hasGroups())) {
+    await listing;
+    for (const id of listed) {
+      try {
+        tabs.push(await chrome.tabs.get(id));
+      } catch (error) {
+        await list(id, false); // Closed while the worker slept.
+      }
+    }
+  }
   for (const group of await groups()) {
     tabs.push(...(await chrome.tabs.query({ groupId: group.id })));
   }
@@ -374,6 +438,12 @@ async function sharedTabs() {
 }
 
 async function isShared(tab) {
+  if (!(await hasGroups())) {
+    await listing;
+    const yes = listed.has(tab.id);
+    if (yes) shared.add(tab.id);
+    return yes;
+  }
   if (tab.groupId === undefined || tab.groupId < 0) return false;
   try {
     const yes = (await chrome.tabGroups.get(tab.groupId)).title === GROUP;
@@ -417,6 +487,10 @@ async function createTab(url, active) {
 
 async function share(tab, group) {
   shared.add(tab.id);
+  if (!(await hasGroups())) {
+    await list(tab.id, true);
+    return;
+  }
   group ??= (await groups()).find((g) => g.windowId === tab.windowId);
   if (group && group.windowId === tab.windowId) {
     await chrome.tabs.group({ tabIds: tab.id, groupId: group.id });
@@ -427,6 +501,16 @@ async function share(tab, group) {
     createProperties: { windowId: tab.windowId },
   });
   await chrome.tabGroups.update(groupId, { title: GROUP, color: 'yellow' });
+}
+
+async function unshare(tab) {
+  if (await hasGroups()) {
+    await chrome.tabs.ungroup(tab.id); // onUpdated tells BaoCode.
+    return;
+  }
+  await list(tab.id, false);
+  await detach(tab.id);
+  event('unshared', { tabId: tab.id });
 }
 
 // The toolbar button: shares the tab in front with BaoCode, or stops; while
@@ -443,7 +527,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     return;
   }
   if (await isShared(tab)) {
-    await chrome.tabs.ungroup(tab.id);
+    await unshare(tab);
     await detach(tab.id);
   } else {
     await share(tab);
@@ -501,10 +585,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, change, tab) => {
     return;
   }
   if (await isShared(tab)) event('tab', { tab: describe(tab) });
+  if (listed.has(tabId)) mark(tabId); // A new page's badge is the button's.
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   attached.delete(tabId);
+  if (listed.has(tabId)) list(tabId, false);
   // After the subscribed events' listeners have looked.
   setTimeout(() => shared.delete(tabId), 0);
   event('closed', { tabId });

@@ -14,7 +14,8 @@
     "debugger",
     "tabs",
     "tabGroups",
-    "alarms"
+    "alarms",
+    "storage"
   ],
   "action": {
     "default_title": "BaoCode",
