@@ -102,7 +102,7 @@ final class AppWindows: NSObject {
     case "create":
       let arguments = call.arguments as? [String: Any] ?? [:]
       result(create(
-        title: arguments["title"] as? String ?? "BaoCode",
+        title: arguments["title"] as? String ?? "Baogong",
         frame: arguments["frame"] as? [String: Any],
         width: arguments["width"] as? Double))
     case "close":

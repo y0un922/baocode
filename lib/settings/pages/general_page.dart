@@ -656,7 +656,7 @@ class _ContextMenuSettingState extends State<_ContextMenuSetting> {
                 ? () => unawaited(
                     _run(
                       () => ContextMenu.install((
-                        agent: l10n.contextMenuOpenWith('BaoCode'),
+                        agent: l10n.contextMenuOpenWith('Baogong'),
                         ide: l10n.contextMenuOpenWith('Fast Ide'),
                       )),
                     ),

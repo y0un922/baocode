@@ -57,10 +57,13 @@ class FinderSync: FIFinderSync {
     return image
   }
 
-  override var toolbarItemName: String { "BaoCode" }
+  /// This fork's name, as Info.plist gives it.
+  private static var appName: String { chinese ? "包工头" : "Baogong" }
+
+  override var toolbarItemName: String { Self.appName }
 
   override var toolbarItemToolTip: String {
-    Self.chinese ? "在 BaoCode 中打开当前文件夹" : "Open the current folder in BaoCode"
+    Self.chinese ? "在包工头中打开当前文件夹" : "Open the current folder in Baogong"
   }
 
   override var toolbarItemImage: NSImage { Self.icon(size: 32) }
@@ -80,7 +83,8 @@ class FinderSync: FIFinderSync {
     }
     let icon = Self.icon(size: 16)
     let agent = NSMenuItem(
-      title: Self.openWith("BaoCode"), action: #selector(openAgent(_:)), keyEquivalent: "")
+      title: Self.chinese ? "用包工头打开" : Self.openWith(Self.appName),
+      action: #selector(openAgent(_:)), keyEquivalent: "")
     agent.image = icon
     menu.addItem(agent)
     let ide = NSMenuItem(

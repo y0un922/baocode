@@ -59,7 +59,7 @@ class _AboutBaoCodeDialog extends StatelessWidget {
                 ),
                 SizedBox(width: 10),
                 Text(
-                  'BaoCode',
+                  context.l10n.appName,
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 15,
@@ -83,6 +83,15 @@ class _AboutBaoCodeDialog extends StatelessWidget {
               context.l10n.aboutDescription,
               style: TextStyle(
                 color: AppColors.textMuted,
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              context.l10n.aboutFork,
+              style: TextStyle(
+                color: AppColors.textFaint,
                 fontSize: 12,
                 height: 1.5,
               ),

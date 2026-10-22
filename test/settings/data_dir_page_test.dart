@@ -110,7 +110,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.migrated, ['/Volumes/D/BaoCode']);
     expect(
-      find.text('Restart BaoCode to use the new data folder'),
+      find.text('Restart Baogong to use the new data folder'),
       findsOneWidget,
     );
     await tester.tap(find.text('Quit Now').last);

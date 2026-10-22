@@ -1,0 +1,3 @@
+/* The app's name where the system is in Chinese (see Info.plist). */
+CFBundleName = "包工头";
+CFBundleDisplayName = "包工头";

@@ -79,7 +79,7 @@ void main() {
         script,
         startsWith('#!/usr/bin/env bash\n# BaoCode shell command\n'),
       );
-      expect(script, contains('open -b dev.baocode.desktop'));
+      expect(script, contains('open -b io.github.y0un922.baogong'));
       expect(File(target).statSync().modeString(), 'rwxr-xr-x');
       expect(ran.where((run) => run.first == 'osascript'), isEmpty);
     });
@@ -252,7 +252,7 @@ void main() {
           expect(result.exitCode, 0);
           final opened = openedWith();
           expect(opened, hasLength(3));
-          expect(opened.take(2), ['-b', 'dev.baocode.desktop']);
+          expect(opened.take(2), ['-b', 'io.github.y0un922.baogong']);
           expect(opened.last, endsWith('.baocode-cli'));
           final request = CodeArgs.fromRequestFile(
             File(opened.last).readAsStringSync(),

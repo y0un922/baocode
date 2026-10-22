@@ -2,6 +2,15 @@
 
 本仓库是 [`y0un922/baocode`](https://github.com/y0un922/baocode)，上游为 [`baocode-dev/baocode`](https://github.com/baocode-dev/baocode)。
 
+## 名称与图标
+
+本 fork 的应用名为 **Baogong**，中文系统下显示为**包工头**；图标是戴安全帽的像素包子（`tool/fork_icon.py` 生成全部尺寸、`assets/branding/logo.svg` 与菜单栏图标的格子）。
+
+- 应用文件夹为 `Baogong.app`，包标识为 `io.github.y0un922.baogong`（Finder 扩展为其 `.FinderExtension`），可与官方 BaoCode 同时安装。
+- 显示名：`macos/Runner/Info.plist` 的 `CFBundleName`/`CFBundleDisplayName`，中文名在 `macos/packaging/zh-Hans.lproj/InfoPlist.strings`，由 `tool/build_macos.dart` 在签名前放入应用；包内可执行文件仍叫 `BaoCode`。
+- 界面文字中指本应用的 “BaoCode” 已改为包工头 / Baogong；指上游的保留原名：Chrome 商店的浏览器扩展（及其“BaoCode”标签页分组和工具栏按钮）、手机 App 与中转、官网更新与诊断、推荐站点列表、GitHub 授权应用。
+- 不改内部名称，以便继续合入上游：数据目录 `~/Library/Application Support/baocode`、`BAOCODE_*` 环境变量、`baocode-agent`、浏览器扩展的原生连接名、`baocode://` 链接、钥匙串服务名、`~/BaoCode/Stash`。因此与官方版共用同一份数据，两者不要同时打开。
+
 ## 更新方式
 
 本 fork **默认不启用安装包更新**，包括 release 构建。官方安装包会替换整个应用，不会合并定制代码。设置中的自动更新选项不会绕过此限制。
@@ -24,8 +33,8 @@
 
 1. 应用必须由已提交并推送的代码构建，并为该提交打 tag，把 tag 的链接一起发过去，作为对应源码。
 2. 把仓库根目录的 `LICENSE` 和应用放在同一个压缩包里。
-3. 应用是 ad hoc 签名，对方首次打开前需运行 `xattr -dr com.apple.quarantine /Applications/BaoCode.app`。
-4. 告诉对方：包标识与官方相同（`dev.baocode.desktop`），装官方版会覆盖它；有问题找你，不要报给官方。
+3. 应用是 ad hoc 签名，对方首次打开前需运行 `xattr -dr com.apple.quarantine /Applications/Baogong.app`。
+4. 告诉对方：可与官方 BaoCode 同时安装，但两者共用数据，不要同时打开；有问题找你，不要报给官方。
 
 ## 审查上游后合并
 

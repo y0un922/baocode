@@ -32,7 +32,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>dev.baocode.desktop</string>
+			<string>io.github.y0un922.baogong</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>baocode</string>
@@ -47,8 +47,16 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<!-- This fork's name: 包工头 where the system is in Chinese
+	     (zh-Hans.lproj/InfoPlist.strings, which tool/build_macos.dart puts
+	     in), Baogong elsewhere; the bundle and its executable stay
+	     BaoCode, as upstream's build expects. -->
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Baogong</string>
+	<key>CFBundleDisplayName</key>
+	<string>Baogong</string>
+	<key>LSHasLocalizedDisplayName</key>
+	<true/>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

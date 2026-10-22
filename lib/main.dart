@@ -761,7 +761,7 @@ class _BaoCodeAppState extends State<BaoCodeApp> {
   /// A window's app: its own navigator, dialogs, overlay and focus; what
   /// it shows built anew as its folder changes.
   Widget _app(AppWindow window) => MaterialApp(
-    title: 'BaoCode',
+    title: 'Baogong',
     debugShowCheckedModeBanner: false,
     theme: buildAppTheme(),
     scrollBehavior: const BaoScrollBehavior(),

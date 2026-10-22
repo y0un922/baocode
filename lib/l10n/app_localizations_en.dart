@@ -50,7 +50,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageSettingsDescription =>
-      'The language of BaoCode\'s menus, views and messages. Changes apply at once.';
+      'The language of Baogong\'s menus, views and messages. Changes apply at once.';
 
   @override
   String languageSettingsFollowSystemCurrent(String language) {
@@ -1412,7 +1412,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuContextPanel => 'Context Panel';
 
   @override
-  String get menuAboutBaoCode => 'About BaoCode';
+  String get menuAboutBaoCode => 'About Baogong';
 
   @override
   String get windowShowSidebar => 'Show sidebar';
@@ -1465,7 +1465,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'No tab is shared yet. Ask an agent to open a page, or click BaoCode in the browser toolbar to share the tab in front.';
 
   @override
-  String get browserOtherApp => 'Another BaoCode is connected to the browser.';
+  String get browserOtherApp => 'Another Baogong is connected to the browser.';
 
   @override
   String get browserSharedTabs => 'Shared Tabs';
@@ -1478,7 +1478,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserDetached =>
-      'The browser stopped letting BaoCode see this tab.';
+      'The browser stopped letting Baogong see this tab.';
 
   @override
   String get browserReconnect => 'Reconnect';
@@ -1739,6 +1739,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutDescription =>
       'Agents run Claude Code as a local process; what they do — messages, tools, diffs and panels — is shown here.';
+
+  @override
+  String get appName => 'Baogong';
+
+  @override
+  String get aboutFork =>
+      'An unofficial fork of BaoCode, not made or supported by its developers.';
 
   @override
   String get agentUntitled => 'New Chat';
@@ -3556,7 +3563,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsClaudeCoreDescription =>
-      'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with BaoCode, and uses only the models added in Settings → Models. The CLI is the default when Claude Code is installed here, the built-in core otherwise. Changes apply to new sessions.';
+      'Claude Code CLI: Anthropic\'s own program, with this machine\'s sign-in and setup; pick it to use a Claude subscription. Built-in: comes with Baogong, and uses only the models added in Settings → Models. The CLI is the default when Claude Code is installed here, the built-in core otherwise. Changes apply to new sessions.';
 
   @override
   String get generalSettingsClaudeCoreBuiltin => 'Built-in';
@@ -3691,7 +3698,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Closing the window hides it there and the agents keep running; its menu shows the agents waiting on you, and quits the app.';
 
   @override
-  String get trayShow => 'Show BaoCode';
+  String get trayShow => 'Show Baogong';
 
   @override
   String get trayWaiting => 'Waiting for You';
@@ -3707,7 +3714,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get trayQuit => 'Quit BaoCode';
+  String get trayQuit => 'Quit Baogong';
 
   @override
   String get attentionNeedsInput => 'Needs your input';
@@ -5246,9 +5253,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'BaoCode does not know the context keys $keys: this keybinding never applies.',
+          'Baogong does not know the context keys $keys: this keybinding never applies.',
       one:
-          'BaoCode does not know the context key $keys: this keybinding never applies.',
+          'Baogong does not know the context key $keys: this keybinding never applies.',
     );
     return '$_temp0';
   }
@@ -5325,7 +5332,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String kbCannotReadKey(String key) {
-    return 'BaoCode cannot read the key “$key”: this keybinding never applies.';
+    return 'Baogong cannot read the key “$key”: this keybinding never applies.';
   }
 
   @override
@@ -5333,7 +5340,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get kbNotSupportedHover =>
-      'BaoCode does not have this command: the keybinding is kept, but does nothing.';
+      'Baogong does not have this command: the keybinding is kept, but does nothing.';
 
   @override
   String get kbPressKeys =>
@@ -5397,26 +5404,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dataDirChecking => 'Checking the folder…';
 
   @override
-  String get dataDirAlreadyHolds => 'The folder already holds BaoCode data';
+  String get dataDirAlreadyHolds => 'The folder already holds Baogong data';
 
   @override
   String get dataDirMoveBack =>
-      'Move BaoCode\'s data back to the default folder?';
+      'Move Baogong\'s data back to the default folder?';
 
   @override
-  String get dataDirMoveHere => 'Move BaoCode\'s data to this folder?';
+  String get dataDirMoveHere => 'Move Baogong\'s data to this folder?';
 
   @override
   String get dataDirUseAsIsDetail =>
-      'After a restart BaoCode uses the data there as it is; nothing is copied, and the current folder keeps yours.';
+      'After a restart Baogong uses the data there as it is; nothing is copied, and the current folder keeps yours.';
 
   @override
   String get dataDirCopyDetail =>
-      'BaoCode copies its settings, keybindings, language servers and state there, and uses that folder after a restart.';
+      'Baogong copies its settings, keybindings, language servers and state there, and uses that folder after a restart.';
 
   @override
   String get dataDirOtherFiles =>
-      'The folder holds other files: they stay, beside BaoCode\'s own.';
+      'The folder holds other files: they stay, beside Baogong\'s own.';
 
   @override
   String get dataDirUseItsData => 'Use Its Data';
@@ -5444,18 +5451,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirRestartTitle =>
-      'Restart BaoCode to use the new data folder';
+      'Restart Baogong to use the new data folder';
 
   @override
   String dataDirRestartDetail(String current, String next) {
-    return 'BaoCode keeps using $current until it restarts. The next start uses $next, and offers to remove what is left in the old one.';
+    return 'Baogong keeps using $current until it restarts. The next start uses $next, and offers to remove what is left in the old one.';
   }
 
   @override
   String get dataDirTheNewFolder => 'the new folder';
 
   @override
-  String get quitConfirmMessage => 'Quit BaoCode?';
+  String get quitConfirmMessage => 'Quit Baogong?';
 
   @override
   String get quitConfirmDetail =>
@@ -5493,7 +5500,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirDescription =>
-      'Where BaoCode keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); BaoCode never moves or removes those.';
+      'Where Baogong keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view\'s caches); Baogong never moves or removes those.';
 
   @override
   String get dataDirCurrentFolder => 'Current folder';
@@ -5524,13 +5531,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirSettingUnreadable =>
-      'BaoCode\'s data folder setting cannot be read';
+      'Baogong\'s data folder setting cannot be read';
 
   @override
-  String get dataDirCannotWrite => 'BaoCode cannot write to its data folder';
+  String get dataDirCannotWrite => 'Baogong cannot write to its data folder';
 
   @override
-  String get dataDirUnavailable => 'BaoCode\'s data folder is not available';
+  String get dataDirUnavailable => 'Baogong\'s data folder is not available';
 
   @override
   String dataDirWhereEnv(String variable) {
@@ -5539,7 +5546,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dataDirWhereFixPointer(String file) {
-    return 'Fix or delete $file and try again; BaoCode changes it only if you choose another folder.';
+    return 'Fix or delete $file and try again; Baogong changes it only if you choose another folder.';
   }
 
   @override
@@ -5563,11 +5570,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataDirRemoveOldTitle =>
-      'Remove the data BaoCode left in its previous folder?';
+      'Remove the data Baogong left in its previous folder?';
 
   @override
   String dataDirRemoveOldDetail(String current, String items) {
-    return 'BaoCode now keeps its data in $current. Only its own items are removed from the previous folder ($items); the folder and everything else in it stay.';
+    return 'Baogong now keeps its data in $current. Only its own items are removed from the previous folder ($items); the folder and everything else in it stay.';
   }
 
   @override
@@ -5582,7 +5589,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dataDirRemoveOldInUseDetail(String items) {
-    return 'Files in $items are in use, perhaps by another program. Everything else was removed; BaoCode offers to remove the rest the next time it starts.';
+    return 'Files in $items are in use, perhaps by another program. Everything else was removed; Baogong offers to remove the rest the next time it starts.';
   }
 
   @override
@@ -5808,7 +5815,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shellCommandOccupied(String path, String name) {
-    return '$path already runs another app\'s \'$name\' command. Replace it with BaoCode\'s?';
+    return '$path already runs another app\'s \'$name\' command. Replace it with Baogong\'s?';
   }
 
   @override
@@ -5829,7 +5836,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsMainWindowDescription =>
-      'What BaoCode opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.';
+      'What Baogong opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.';
 
   @override
   String generalSettingsMainWindowLabel(String name) {
@@ -5894,7 +5901,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String claudePathInUseDownloaded(String version) {
-    return 'In use: Claude Code $version, downloaded by BaoCode';
+    return 'In use: Claude Code $version, downloaded by Baogong';
   }
 
   @override
@@ -6049,7 +6056,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String generalSettingsShellCommandDescription(String location) {
-    return 'Open files and folders in BaoCode from a terminal: \'code <path>\'. Installed at $location.';
+    return 'Open files and folders in Baogong from a terminal: \'code <path>\'. Installed at $location.';
   }
 
   @override
@@ -6419,7 +6426,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsImportInvalidDetail =>
-      'It needs a base URL (http or https) and a protocol BaoCode knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.';
+      'It needs a base URL (http or https) and a protocol Baogong knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.';
 
   @override
   String get modelsAddProvider => 'Add Upstream';
@@ -6786,7 +6793,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelsRoleSubagentDescription =>
-      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit). It may be another upstream\'s: BaoCode\'s local proxy sends its requests there.';
+      'CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent\'s call names (but inherit). It may be another upstream\'s: Baogong\'s local proxy sends its requests there.';
 
   @override
   String get modelsRoleMissing =>
@@ -7564,11 +7571,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generalSettingsContextMenuDescription =>
-      'Adds \"Open with BaoCode\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.';
+      'Adds \"Open with Baogong\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder\'s background.';
 
   @override
   String get generalSettingsContextMenuMacNote =>
-      'Finder\'s own setting is in System Settings\' extensions, where the BaoCode extension can also be turned on and off.';
+      'Finder\'s own setting is in System Settings\' extensions, where the Baogong extension can also be turned on and off.';
 
   @override
   String get generalSettingsContextMenuOn => 'On';
@@ -7779,7 +7786,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateButton => 'Update';
 
   @override
-  String get tipsSetupTitle => 'Set Up BaoCode';
+  String get tipsSetupTitle => 'Set Up Baogong';
 
   @override
   String tipsSetupCount(int done, int total) {
@@ -7828,7 +7835,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tipContextMenuBody =>
-      'Open files and folders in BaoCode from their context menu.';
+      'Open files and folders in Baogong from their context menu.';
 
   @override
   String tipShellCommandTitle(String name) {
@@ -7837,7 +7844,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tipShellCommandBody(String name) {
-    return 'Open folders in BaoCode from a terminal: $name <path>.';
+    return 'Open folders in Baogong from a terminal: $name <path>.';
   }
 
   @override
@@ -7982,14 +7989,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkSettingsDescription =>
-      'How BaoCode and the Claude Code it starts reach the internet.';
+      'How Baogong and the Claude Code it starts reach the internet.';
 
   @override
   String get networkProxy => 'Proxy';
 
   @override
   String get networkProxyDescription =>
-      'The proxy for BaoCode and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.';
+      'The proxy for Baogong and Claude Code (http.proxyMode). System Proxy follows the system\'s settings, such as Clash\'s system proxy. New sessions take a change; restart a running one for it.';
 
   @override
   String networkProxyLabel(String name) {
@@ -8049,7 +8056,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get networkProxyStatusAutoConfig =>
-      'Direct: the system sets its proxy with an auto-config (PAC) file, which BaoCode doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.';
+      'Direct: the system sets its proxy with an auto-config (PAC) file, which Baogong doesn\'t follow. Turn on Clash\'s system proxy, or enter the address manually.';
 
   @override
   String get networkProxyRefresh => 'Detect Again';
@@ -8131,7 +8138,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extsCapabilityPartialDetail =>
-      'Its themes apply; the rest of it does nothing in BaoCode.';
+      'Its themes apply; the rest of it does nothing in Baogong.';
 
   @override
   String extsEngineIncompatible(String current, String requested) {
@@ -8342,7 +8349,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extsCapabilityUnsupportedDetail =>
-      'It has no color or file icon theme: BaoCode only uses themes from extensions.';
+      'It has no color or file icon theme: Baogong only uses themes from extensions.';
 
   @override
   String get extsFindingCode => 'Its code does not run.';
@@ -9029,7 +9036,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get stashImplement => 'Implement in BaoCode';
+  String get stashImplement => 'Implement in Baogong';
 
   @override
   String get stashImplementHow => 'How should the agent work on it?';
@@ -9146,7 +9153,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stashSettingsDirectoryRestart =>
-      'Takes effect after BaoCode restarts.';
+      'Takes effect after Baogong restarts.';
 
   @override
   String get stashAll => 'All';
@@ -9547,7 +9554,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stashWelcomeAgent =>
-      'Click Implement in BaoCode, or mention it in a conversation; the conversation and the stash stay linked.';
+      'Click Implement in Baogong, or mention it in a conversation; the conversation and the stash stay linked.';
 
   @override
   String get stashWelcomeTrackTitle => 'See how it goes';
@@ -9642,7 +9649,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserSettingsAppOld =>
-      'The extension is newer than this BaoCode. Update BaoCode.';
+      'The extension is newer than this Baogong. Update Baogong.';
 
   @override
   String get browserSettingsInstall => 'Get the Extension';
@@ -9675,7 +9682,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browserHistoryDescription =>
-      'What the tabs shared with BaoCode do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.';
+      'What the tabs shared with Baogong do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.';
 
   @override
   String get browserHistoryDetailed => 'Detailed history';
@@ -9779,7 +9786,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelWelcomeLead =>
-      'BaoCode runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.';
+      'Baogong runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.';
 
   @override
   String get modelWelcomeAnyTitle => 'Any upstream';
@@ -9985,7 +9992,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sshServerCoreBuiltinHint =>
-      'BaoCode\'s own core: it runs on the upstreams of Settings → Models.';
+      'Baogong\'s own core: it runs on the upstreams of Settings → Models.';
 
   @override
   String get sshServerCoreCliHint =>

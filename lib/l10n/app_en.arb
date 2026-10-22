@@ -13,7 +13,7 @@
   "commonSelectAll": "Select All",
   "languageSettingsTitle": "Region & Language",
   "languageSettingsDisplayLanguage": "Display Language",
-  "languageSettingsDescription": "The language of BaoCode's menus, views and messages. Changes apply at once.",
+  "languageSettingsDescription": "The language of Baogong's menus, views and messages. Changes apply at once.",
   "languageSettingsFollowSystemCurrent": "Follow System ({language})",
   "@languageSettingsFollowSystemCurrent": {
     "description": "Follow System, with the language the system's resolves to, named in its own language.",
@@ -624,7 +624,7 @@
   "menuHideSidebar": "Hide Sidebar",
   "menuKeepOnTop": "Keep on Top",
   "menuContextPanel": "Context Panel",
-  "menuAboutBaoCode": "About BaoCode",
+  "menuAboutBaoCode": "About Baogong",
   "windowShowSidebar": "Show sidebar",
   "@windowShowSidebar": {
     "description": "Tooltip."
@@ -654,11 +654,11 @@
   "@sidePanelBrowser": {"description": "The side panel's browser page, there once the browser plugin is installed."},
   "browserNotConnected": "No browser is connected. Add BaoCode's extension to Chrome (or Edge, Brave, Arc) and agents can use the tabs you share with them.",
   "browserNoSharedTab": "No tab is shared yet. Ask an agent to open a page, or click BaoCode in the browser toolbar to share the tab in front.",
-  "browserOtherApp": "Another BaoCode is connected to the browser.",
+  "browserOtherApp": "Another Baogong is connected to the browser.",
   "browserSharedTabs": "Shared Tabs",
   "browserReload": "Reload",
   "browserShowInBrowser": "Show in Browser",
-  "browserDetached": "The browser stopped letting BaoCode see this tab.",
+  "browserDetached": "The browser stopped letting Baogong see this tab.",
   "browserReconnect": "Reconnect",
   "browserShowInPanel": "Show in Side Panel",
   "browserWatchTitle": "Watching you in the browser",
@@ -822,6 +822,11 @@
     "description": "Window button."
   },
   "aboutDescription": "Agents run Claude Code as a local process; what they do — messages, tools, diffs and panels — is shown here.",
+  "appName": "Baogong",
+  "@appName": {
+    "description": "This fork's name, as the system shows the app: Baogong; 包工头 in Chinese."
+  },
+  "aboutFork": "An unofficial fork of BaoCode, not made or supported by its developers.",
   "agentUntitled": "New Chat",
   "@agentUntitled": {
     "description": "The title of an agent before its first message names it."
@@ -2406,7 +2411,7 @@
   "@generalSettingsClaudeCore": {
     "description": "Settings → General → Claude Code row: what runs Claude Code sessions, BaoCode's built-in core (written in Dart) or the Claude Code CLI."
   },
-  "generalSettingsClaudeCoreDescription": "Claude Code CLI: Anthropic's own program, with this machine's sign-in and setup; pick it to use a Claude subscription. Built-in: comes with BaoCode, and uses only the models added in Settings → Models. The CLI is the default when Claude Code is installed here, the built-in core otherwise. Changes apply to new sessions.",
+  "generalSettingsClaudeCoreDescription": "Claude Code CLI: Anthropic's own program, with this machine's sign-in and setup; pick it to use a Claude subscription. Built-in: comes with Baogong, and uses only the models added in Settings → Models. The CLI is the default when Claude Code is installed here, the built-in core otherwise. Changes apply to new sessions.",
   "generalSettingsClaudeCoreBuiltin": "Built-in",
   "@generalSettingsClaudeCoreBuiltin": {
     "description": "Claude Code core choice: BaoCode's own agent core, written in Dart and run inside the app."
@@ -2515,7 +2520,7 @@
   "trayEnabledMacOS": "Show the icon in the menu bar",
   "trayEnabledWindows": "Show the icon in the system tray",
   "trayEnabledDescription": "Closing the window hides it there and the agents keep running; its menu shows the agents waiting on you, and quits the app.",
-  "trayShow": "Show BaoCode",
+  "trayShow": "Show Baogong",
   "trayWaiting": "Waiting for You",
   "@trayWaiting": {
     "description": "Tray menu header over the agents waiting on the user."
@@ -2538,7 +2543,7 @@
     },
     "description": "Tray menu: how many agents are running."
   },
-  "trayQuit": "Quit BaoCode",
+  "trayQuit": "Quit Baogong",
   "attentionNeedsInput": "Needs your input",
   "@attentionNeedsInput": {
     "description": "Notification: the agent waits on the user."
@@ -3746,7 +3751,7 @@
       }
     }
   },
-  "kbUnknownContextKeys": "{count, plural, =1{BaoCode does not know the context key {keys}: this keybinding never applies.} other{BaoCode does not know the context keys {keys}: this keybinding never applies.}}",
+  "kbUnknownContextKeys": "{count, plural, =1{Baogong does not know the context key {keys}: this keybinding never applies.} other{Baogong does not know the context keys {keys}: this keybinding never applies.}}",
   "@kbUnknownContextKeys": {
     "placeholders": {
       "count": {
@@ -3793,7 +3798,7 @@
   "kbColumnSource": "Source",
   "kbWhenLabel": "When expression",
   "kbNoneFound": "No keybindings found",
-  "kbCannotReadKey": "BaoCode cannot read the key “{key}”: this keybinding never applies.",
+  "kbCannotReadKey": "Baogong cannot read the key “{key}”: this keybinding never applies.",
   "@kbCannotReadKey": {
     "placeholders": {
       "key": {
@@ -3802,7 +3807,7 @@
     }
   },
   "kbNotSupported": "Not supported",
-  "kbNotSupportedHover": "BaoCode does not have this command: the keybinding is kept, but does nothing.",
+  "kbNotSupportedHover": "Baogong does not have this command: the keybinding is kept, but does nothing.",
   "kbPressKeys": "Press desired key combination and then press Enter.",
   "kbChordTo": "chord to",
   "kbExistingCommands": "{count, plural, =1{1 existing command has this keybinding} other{{count} existing commands have this keybinding}}",
@@ -3852,12 +3857,12 @@
   "dataDirRevealInFileExplorer": "Reveal in File Explorer",
   "dataDirRevealInFileManager": "Reveal in File Manager",
   "dataDirChecking": "Checking the folder…",
-  "dataDirAlreadyHolds": "The folder already holds BaoCode data",
-  "dataDirMoveBack": "Move BaoCode's data back to the default folder?",
-  "dataDirMoveHere": "Move BaoCode's data to this folder?",
-  "dataDirUseAsIsDetail": "After a restart BaoCode uses the data there as it is; nothing is copied, and the current folder keeps yours.",
-  "dataDirCopyDetail": "BaoCode copies its settings, keybindings, language servers and state there, and uses that folder after a restart.",
-  "dataDirOtherFiles": "The folder holds other files: they stay, beside BaoCode's own.",
+  "dataDirAlreadyHolds": "The folder already holds Baogong data",
+  "dataDirMoveBack": "Move Baogong's data back to the default folder?",
+  "dataDirMoveHere": "Move Baogong's data to this folder?",
+  "dataDirUseAsIsDetail": "After a restart Baogong uses the data there as it is; nothing is copied, and the current folder keeps yours.",
+  "dataDirCopyDetail": "Baogong copies its settings, keybindings, language servers and state there, and uses that folder after a restart.",
+  "dataDirOtherFiles": "The folder holds other files: they stay, beside Baogong's own.",
   "dataDirUseItsData": "Use Its Data",
   "dataDirCopyAndSwitch": "Copy and Switch",
   "dataDirCopying": "Copying…",
@@ -3888,8 +3893,8 @@
       }
     }
   },
-  "dataDirRestartTitle": "Restart BaoCode to use the new data folder",
-  "dataDirRestartDetail": "BaoCode keeps using {current} until it restarts. The next start uses {next}, and offers to remove what is left in the old one.",
+  "dataDirRestartTitle": "Restart Baogong to use the new data folder",
+  "dataDirRestartDetail": "Baogong keeps using {current} until it restarts. The next start uses {next}, and offers to remove what is left in the old one.",
   "@dataDirRestartDetail": {
     "placeholders": {
       "current": {
@@ -3901,7 +3906,7 @@
     }
   },
   "dataDirTheNewFolder": "the new folder",
-  "quitConfirmMessage": "Quit BaoCode?",
+  "quitConfirmMessage": "Quit Baogong?",
   "quitConfirmDetail": "Running agents and terminals will be stopped.",
   "quitConfirmQuit": "Quit",
   "dataDirQuitNow": "Quit Now",
@@ -3932,7 +3937,7 @@
     }
   },
   "dataDirTitle": "Data Folder",
-  "dataDirDescription": "Where BaoCode keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view's caches); BaoCode never moves or removes those.",
+  "dataDirDescription": "Where Baogong keeps your settings, keybindings, language servers and its own state. Other programs keep files there too (the web view's caches); Baogong never moves or removes those.",
   "dataDirCurrentFolder": "Current folder",
   "dataDirNewFolder": "New folder",
   "dataDirAfterRestart": "After a restart: {path}",
@@ -3964,9 +3969,9 @@
       }
     }
   },
-  "dataDirSettingUnreadable": "BaoCode's data folder setting cannot be read",
-  "dataDirCannotWrite": "BaoCode cannot write to its data folder",
-  "dataDirUnavailable": "BaoCode's data folder is not available",
+  "dataDirSettingUnreadable": "Baogong's data folder setting cannot be read",
+  "dataDirCannotWrite": "Baogong cannot write to its data folder",
+  "dataDirUnavailable": "Baogong's data folder is not available",
   "dataDirWhereEnv": "It is set by the {variable} environment variable.",
   "@dataDirWhereEnv": {
     "placeholders": {
@@ -3975,7 +3980,7 @@
       }
     }
   },
-  "dataDirWhereFixPointer": "Fix or delete {file} and try again; BaoCode changes it only if you choose another folder.",
+  "dataDirWhereFixPointer": "Fix or delete {file} and try again; Baogong changes it only if you choose another folder.",
   "@dataDirWhereFixPointer": {
     "placeholders": {
       "file": {
@@ -4002,8 +4007,8 @@
   "dataDirRetry": "Retry",
   "dataDirUseDefaultOnce": "Use the Default Folder This Time",
   "dataDirChooseAnother": "Choose Another Folder…",
-  "dataDirRemoveOldTitle": "Remove the data BaoCode left in its previous folder?",
-  "dataDirRemoveOldDetail": "BaoCode now keeps its data in {current}. Only its own items are removed from the previous folder ({items}); the folder and everything else in it stay.",
+  "dataDirRemoveOldTitle": "Remove the data Baogong left in its previous folder?",
+  "dataDirRemoveOldDetail": "Baogong now keeps its data in {current}. Only its own items are removed from the previous folder ({items}); the folder and everything else in it stay.",
   "@dataDirRemoveOldDetail": {
     "placeholders": {
       "current": {
@@ -4017,7 +4022,7 @@
   "dataDirRemove": "Remove",
   "dataDirKeep": "Keep",
   "dataDirRemoveOldInUse": "Some of the old data could not be removed",
-  "dataDirRemoveOldInUseDetail": "Files in {items} are in use, perhaps by another program. Everything else was removed; BaoCode offers to remove the rest the next time it starts.",
+  "dataDirRemoveOldInUseDetail": "Files in {items} are in use, perhaps by another program. Everything else was removed; Baogong offers to remove the rest the next time it starts.",
   "@dataDirRemoveOldInUseDetail": {
     "placeholders": {
       "items": {
@@ -4220,7 +4225,7 @@
       }
     }
   },
-  "shellCommandOccupied": "{path} already runs another app's '{name}' command. Replace it with BaoCode's?",
+  "shellCommandOccupied": "{path} already runs another app's '{name}' command. Replace it with Baogong's?",
   "@shellCommandOccupied": {
     "placeholders": {
       "path": {
@@ -4255,7 +4260,7 @@
     }
   },
   "generalSettingsMainWindow": "Open at Launch",
-  "generalSettingsMainWindowDescription": "What BaoCode opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.",
+  "generalSettingsMainWindowDescription": "What Baogong opens to: the agents, or the IDE windows (as Restore Windows says), never both. By default, wherever it was left when it last quit.",
   "generalSettingsMainWindowLabel": "Open at Launch: {name}",
   "@generalSettingsMainWindowLabel": {
     "placeholders": {
@@ -4299,7 +4304,7 @@
       }
     }
   },
-  "claudePathInUseDownloaded": "In use: Claude Code {version}, downloaded by BaoCode",
+  "claudePathInUseDownloaded": "In use: Claude Code {version}, downloaded by Baogong",
   "@claudePathInUseDownloaded": {
     "placeholders": {
       "version": {
@@ -4370,7 +4375,7 @@
   "windowMenuWindows": "Windows",
   "windowOpened": "Opened",
   "generalSettingsShellCommand": "Shell Command",
-  "generalSettingsShellCommandDescription": "Open files and folders in BaoCode from a terminal: 'code <path>'. Installed at {location}.",
+  "generalSettingsShellCommandDescription": "Open files and folders in Baogong from a terminal: 'code <path>'. Installed at {location}.",
   "@generalSettingsShellCommandDescription": {
     "placeholders": {
       "location": {
@@ -4586,7 +4591,7 @@
   },
   "modelsImportAsNew": "Add as New Upstream",
   "modelsImportInvalid": "This import link can't be used",
-  "modelsImportInvalidDetail": "It needs a base URL (http or https) and a protocol BaoCode knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.",
+  "modelsImportInvalidDetail": "It needs a base URL (http or https) and a protocol Baogong knows. Ask the site for a new link, or add the upstream by hand in Settings → Models.",
   "modelsAddProvider": "Add Upstream",
   "modelsNewProviderName": "New Upstream",
   "modelsProviderNoUrl": "No base URL",
@@ -4825,7 +4830,7 @@
   "modelsRoleHaikuDescription": "ANTHROPIC_DEFAULT_HAIKU_MODEL: Claude Code's background work, and agents' titles.",
   "modelsRoleHaikuWarning": "Unset, background work runs on the model picked, which may be slower and cost more. Pick a small, fast model.",
   "modelsRoleSubagent": "Subagents",
-  "modelsRoleSubagentDescription": "CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent's call names (but inherit). It may be another upstream's: BaoCode's local proxy sends its requests there.",
+  "modelsRoleSubagentDescription": "CLAUDE_CODE_SUBAGENT_MODEL: the model every subagent runs on, over the one its definition or the agent's call names (but inherit). It may be another upstream's: Baogong's local proxy sends its requests there.",
   "modelsRoleMissing": "This model is no longer one of its upstream's: subagents' requests to it will fail.",
   "@modelsRoleMissing": {
     "description": "Under a role that picks another upstream's model, once that upstream or model is gone."
@@ -5340,8 +5345,8 @@
   },
   "generalSettingsContextMenuFinder": "Finder Context Menu",
   "generalSettingsContextMenuExplorer": "File Explorer Context Menu",
-  "generalSettingsContextMenuDescription": "Adds \"Open with BaoCode\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder's background.",
-  "generalSettingsContextMenuMacNote": "Finder's own setting is in System Settings' extensions, where the BaoCode extension can also be turned on and off.",
+  "generalSettingsContextMenuDescription": "Adds \"Open with Baogong\" (a new agent) and \"Open with Fast Ide\" (a new IDE window) to the context menu of files, folders and a folder's background.",
+  "generalSettingsContextMenuMacNote": "Finder's own setting is in System Settings' extensions, where the Baogong extension can also be turned on and off.",
   "generalSettingsContextMenuOn": "On",
   "generalSettingsContextMenuOff": "Off",
   "generalSettingsContextMenuUnsupported": "This build of the app has no Finder extension.",
@@ -5594,7 +5599,7 @@
   "@updateButton": {
     "description": "The sidebar's button while an update waits to be installed: restarts into it."
   },
-  "tipsSetupTitle": "Set Up BaoCode",
+  "tipsSetupTitle": "Set Up Baogong",
   "tipsSetupCount": "{done}/{total}",
   "@tipsSetupCount": {
     "placeholders": {
@@ -5647,7 +5652,7 @@
   "tipsListSeparator": ", ",
   "tipsSettingsTitle": "Recommended",
   "tipsSettingsDescription": "Features not turned on yet. Show Setup Guide brings back the setup checklist; \"workbench.tips.enabled\": false in settings.json turns tips off.",
-  "tipContextMenuBody": "Open files and folders in BaoCode from their context menu.",
+  "tipContextMenuBody": "Open files and folders in Baogong from their context menu.",
   "tipShellCommandTitle": "'{name}' Command",
   "@tipShellCommandTitle": {
     "placeholders": {
@@ -5656,7 +5661,7 @@
       }
     }
   },
-  "tipShellCommandBody": "Open folders in BaoCode from a terminal: {name} <path>.",
+  "tipShellCommandBody": "Open folders in Baogong from a terminal: {name} <path>.",
   "@tipShellCommandBody": {
     "placeholders": {
       "name": {
@@ -5790,9 +5795,9 @@
   "settingsSectionNetwork": "Network",
   "settingsNetworkKeywords": "proxy http https clash vpn network",
   "networkSettingsTitle": "Network",
-  "networkSettingsDescription": "How BaoCode and the Claude Code it starts reach the internet.",
+  "networkSettingsDescription": "How Baogong and the Claude Code it starts reach the internet.",
   "networkProxy": "Proxy",
-  "networkProxyDescription": "The proxy for BaoCode and Claude Code (http.proxyMode). System Proxy follows the system's settings, such as Clash's system proxy. New sessions take a change; restart a running one for it.",
+  "networkProxyDescription": "The proxy for Baogong and Claude Code (http.proxyMode). System Proxy follows the system's settings, such as Clash's system proxy. New sessions take a change; restart a running one for it.",
   "networkProxyLabel": "Proxy: {name}",
   "@networkProxyLabel": {
     "description": "The proxy dropdown, as read out.",
@@ -5853,7 +5858,7 @@
   "networkProxyStatusManualMissing": "Enter the proxy's address.",
   "networkProxyStatusNone": "Direct: the system has no proxy set.",
   "networkProxyStatusOff": "Direct.",
-  "networkProxyStatusAutoConfig": "Direct: the system sets its proxy with an auto-config (PAC) file, which BaoCode doesn't follow. Turn on Clash's system proxy, or enter the address manually.",
+  "networkProxyStatusAutoConfig": "Direct: the system sets its proxy with an auto-config (PAC) file, which Baogong doesn't follow. Turn on Clash's system proxy, or enter the address manually.",
   "networkProxyRefresh": "Detect Again",
   "networkTest": "Connection Test",
   "networkTestDescription": "Reaches these sites through the proxy in use: whether each answers, and how quickly (a new connection's time, until the answer starts).",
@@ -5895,7 +5900,7 @@
   "extsCapabilityFull": "Fully supported",
   "extsCapabilityFullDetail": "Its color or file icon themes all apply.",
   "extsCapabilityPartial": "Partly supported",
-  "extsCapabilityPartialDetail": "Its themes apply; the rest of it does nothing in BaoCode.",
+  "extsCapabilityPartialDetail": "Its themes apply; the rest of it does nothing in Baogong.",
   "extsEngineIncompatible": "Needs VS Code {requested}; this is {current}.",
   "@extsEngineIncompatible": {
     "placeholders": {
@@ -6056,7 +6061,7 @@
   "themeSelectIconThemePlaceholder": "Select File Icon Theme (Up/Down Keys to Preview)",
   "themeIconThemeBuiltIn": "Built-in",
   "extsCapabilityUnsupported": "Not supported",
-  "extsCapabilityUnsupportedDetail": "It has no color or file icon theme: BaoCode only uses themes from extensions.",
+  "extsCapabilityUnsupportedDetail": "It has no color or file icon theme: Baogong only uses themes from extensions.",
   "extsFindingCode": "Its code does not run.",
   "extsFindingContribution": "Not used: {name}",
   "@extsFindingContribution": {
@@ -6465,7 +6470,7 @@
       }
     }
   },
-  "stashImplement": "Implement in BaoCode",
+  "stashImplement": "Implement in Baogong",
   "stashImplementHow": "How should the agent work on it?",
   "stashImplementHowDetail": "In a new git worktree (a branch of its own, your working copy untouched), or directly in the project as it is.",
   "stashImplementWorktree": "New Worktree",
@@ -6526,7 +6531,7 @@
   "stashSettingsDirectory": "Location",
   "stashSettingsDirectoryChange": "Change…",
   "stashSettingsDirectoryReset": "Default",
-  "stashSettingsDirectoryRestart": "Takes effect after BaoCode restarts.",
+  "stashSettingsDirectoryRestart": "Takes effect after Baogong restarts.",
   "stashAll": "All",
   "@stashAll": {
     "description": "Opens the list of every stash beside the one written in, in the stash panel."
@@ -6880,7 +6885,7 @@
   "stashWelcomeLead": "Note things down the moment they come to you, hand them to an agent when you are ready, and see how each one is going.",
   "stashWelcomeNoteTitle": "Note it down",
   "stashWelcomeAgentTitle": "Hand it to an agent",
-  "stashWelcomeAgent": "Click Implement in BaoCode, or mention it in a conversation; the conversation and the stash stay linked.",
+  "stashWelcomeAgent": "Click Implement in Baogong, or mention it in a conversation; the conversation and the stash stay linked.",
   "stashWelcomeTrackTitle": "See how it goes",
   "stashWelcomeTrack": "Cards show their conversations live, and the GitHub and GitLab issues and pull requests they link to stay in sync.",
   "stashWelcomeStart": "Get Started",
@@ -6915,7 +6920,7 @@
   "browserSettingsExtensionVersion": "Extension {version}",
   "@browserSettingsExtensionVersion": {"description": "The version of BaoCode's extension in a connected browser.", "placeholders": {"version": {"type": "String"}}},
   "browserSettingsExtensionOld": "The extension is out of date. From the store, it updates automatically, or click Update in chrome://extensions; installed manually, download the zip again, replace the folder's contents and click reload.",
-  "browserSettingsAppOld": "The extension is newer than this BaoCode. Update BaoCode.",
+  "browserSettingsAppOld": "The extension is newer than this Baogong. Update Baogong.",
   "browserSettingsInstall": "Get the Extension",
   "browserSettingsStore": "Chrome Web Store",
   "browserSettingsStoreDescription": "Recommended. Updates automatically; works in Chrome, Edge, Brave, Arc and other Chromium browsers.",
@@ -6925,7 +6930,7 @@
   "browserSettingsUnpackedDownload": "Download Zip",
   "browserSettingsOpen": "Browser Settings",
   "browserHistoryTitle": "Debugging history",
-  "browserHistoryDescription": "What the tabs shared with BaoCode do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.",
+  "browserHistoryDescription": "What the tabs shared with Baogong do is kept as it happens, no recording needed: the pages, the requests, console errors and warnings. Agents look back at it when you ask (“it failed when I saved”). Kept on this computer; cookies and tokens are not.",
   "browserHistoryDetailed": "Detailed history",
   "browserHistoryDetailedDescription": "Also keeps the request and response bodies, what you do (clicks and typing, never passwords) and every console message. Takes more space.",
   "browserHistorySize": "Using {size}",
@@ -6957,7 +6962,7 @@
   "cmdStashWelcome": "Meet Stash...",
   "cmdModelWelcome": "Set Up a Model...",
   "modelWelcomeTitle": "Pick a Model to Start",
-  "modelWelcomeLead": "BaoCode runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.",
+  "modelWelcomeLead": "Baogong runs your agents on a model of your choosing. Add an upstream, a service with an API key, and its models are ready to use.",
   "modelWelcomeAnyTitle": "Any upstream",
   "modelWelcomeAny": "Anthropic's API, OpenAI's Chat Completions or Responses, or a service that speaks one of them, such as OpenRouter or DeepSeek.",
   "modelWelcomeKeysTitle": "Your keys stay with you",
@@ -7033,7 +7038,7 @@
   "sshServerCore": "Core",
   "sshServerCoreAuto": "Automatic",
   "sshServerCoreAutoHint": "The server's Claude Code CLI if it has one, else the built-in core.",
-  "sshServerCoreBuiltinHint": "BaoCode's own core: it runs on the upstreams of Settings → Models.",
+  "sshServerCoreBuiltinHint": "Baogong's own core: it runs on the upstreams of Settings → Models.",
   "sshServerCoreCliHint": "The server's Claude Code CLI, installed there if it has none.",
   "sshServerJump": "Jump Host (optional)",
   "sshServerNoJump": "None: connect directly",

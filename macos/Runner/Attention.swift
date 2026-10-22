@@ -271,8 +271,9 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate, NSSoundDelega
   }
 
   /// The logo in the menu bar, a template the system draws light or dark
-  /// as the bar is: the 56×42 pixel face of bao.svg, 16pt wide, its cells
-  /// on whole pixels; with [dot], a dot at its top right, cut out of it.
+  /// as the bar is: the 70×56 pixel face of logo.svg, 15pt wide, its cells
+  /// on whole pixels at 2x; with [dot], a dot at its top right, cut out of
+  /// it.
   static func trayImage(dot: Bool) -> NSImage {
     let size = NSSize(width: 18, height: 18)
     let image = NSImage(size: size)
@@ -297,16 +298,22 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate, NSSoundDelega
     return image
   }
 
-  /// The logo's cells, in its own 56×42 units (bao.svg).
+  /// The logo's cells, in its own 70×56 units (assets/branding/logo.svg,
+  /// as tool/fork_icon.py prints them): the bun in its hard hat.
   static let logoCells: [CGRect] = [
-    CGRect(x: 14, y: 0, width: 28, height: 7),
-    CGRect(x: 7, y: 7, width: 7, height: 7),
-    CGRect(x: 42, y: 7, width: 7, height: 7),
-    CGRect(x: 0, y: 14, width: 7, height: 21),
-    CGRect(x: 49, y: 14, width: 7, height: 21),
-    CGRect(x: 14, y: 21, width: 8, height: 7),
-    CGRect(x: 35, y: 21, width: 8, height: 7),
-    CGRect(x: 7, y: 35, width: 42, height: 7),
+    CGRect(x: 28, y: 0, width: 14, height: 7),
+    CGRect(x: 14, y: 7, width: 42, height: 7),
+    CGRect(x: 7, y: 14, width: 56, height: 7),
+    CGRect(x: 0, y: 21, width: 70, height: 7),
+    CGRect(x: 7, y: 28, width: 7, height: 7),
+    CGRect(x: 56, y: 28, width: 7, height: 7),
+    CGRect(x: 7, y: 35, width: 7, height: 7),
+    CGRect(x: 21, y: 35, width: 7, height: 7),
+    CGRect(x: 42, y: 35, width: 7, height: 7),
+    CGRect(x: 56, y: 35, width: 7, height: 7),
+    CGRect(x: 7, y: 42, width: 7, height: 7),
+    CGRect(x: 56, y: 42, width: 7, height: 7),
+    CGRect(x: 14, y: 49, width: 42, height: 7),
   ]
 
   /// Draws the tray icon into a square of [pixels] (18pt of them), from its
@@ -317,13 +324,13 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate, NSSoundDelega
     context.translateBy(x: 0, y: pixels)
     context.scaleBy(x: 1, y: -1)
     context.setFillColor(NSColor.black.cgColor)
-    // 16pt wide from 1pt in, 12pt high from 3pt down: centered, on whole
-    // pixels.
-    let k = 16 * unit / 56
+    // 15pt wide from 1.5pt in, 12pt high from 3pt down: centered, a cell
+    // 1.5pt (whole pixels at 2x).
+    let k = 15 * unit / 70
     for cell in logoCells {
-      let x0 = (unit + cell.minX * k).rounded()
+      let x0 = (1.5 * unit + cell.minX * k).rounded()
       let y0 = (3 * unit + cell.minY * k).rounded()
-      let x1 = (unit + cell.maxX * k).rounded()
+      let x1 = (1.5 * unit + cell.maxX * k).rounded()
       let y1 = (3 * unit + cell.maxY * k).rounded()
       context.fill(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0))
     }

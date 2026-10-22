@@ -1,5 +1,5 @@
-# Builds this fork for macOS and publishes it as a GitHub release of this
-# repository, for whoever it is shared with (docs/fork.md, 分享给别人).
+# Builds this fork, Baogong (包工头), for macOS and publishes it as a GitHub
+# release of this repository, for whoever it is shared with (docs/fork.md, 分享给别人).
 # Not upstream's release.yml: nothing goes to dl.baocode.dev, and the app is
 # signed ad hoc (no Developer ID here).
 #
@@ -50,24 +50,24 @@ jobs:
           for arch in arm64 x64; do
             dir="$RUNNER_TEMP/launch-$arch"
             mkdir "$dir"
-            ditto -x -k build/installers/BaoCode-*-mac-$arch.zip "$dir"
+            ditto -x -k build/installers/Baogong-*-mac-$arch.zip "$dir"
             BAOCODE_DATA_DIR="$dir-data" \
-              "$dir/BaoCode.app/Contents/MacOS/BaoCode" > "$dir.log" 2>&1 &
+              "$dir/Baogong.app/Contents/MacOS/BaoCode" > "$dir.log" 2>&1 &
             pid=$!
             sleep 15
             if ! kill -0 $pid 2>/dev/null; then
               cat "$dir.log"
-              echo "::error::BaoCode ($arch) exited within 15 seconds of launch"
+              echo "::error::Baogong ($arch) exited within 15 seconds of launch"
               exit 1
             fi
-            echo "BaoCode ($arch) is running after 15 seconds"
+            echo "Baogong ($arch) is running after 15 seconds"
             kill $pid
           done
       - uses: actions/upload-artifact@v4
         with:
           name: macos
           if-no-files-found: error
-          path: build/installers/BaoCode-*.dmg
+          path: build/installers/Baogong-*.dmg
       - name: Release it under the tag
         if: github.ref_type == 'tag'
         env:
@@ -77,30 +77,30 @@ jobs:
           marketing=${marketing%%+*}
           cp LICENSE build/installers/LICENSE
           cat > "$RUNNER_TEMP/notes.md" <<EOF
-          **Unofficial fork** of [baocode-dev/baocode](https://github.com/baocode-dev/baocode), not made or supported by its developers: report problems here, not upstream. Changes: [docs/fork.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/docs/fork.md).
+          **Baogong (包工头)**, an **unofficial fork** of [baocode-dev/baocode](https://github.com/baocode-dev/baocode), not made or supported by its developers: report problems here, not upstream. Changes: [docs/fork.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/docs/fork.md).
 
-          **非官方修改版**，与官方开发者无关；有问题请在本仓库反馈，不要报给官方。
+          **包工头**是 BaoCode 的**非官方修改版**，与官方开发者无关；有问题请在本仓库反馈，不要报给官方。
 
           ## 下载 / Download
 
-          - Apple 芯片（M1 及以后）：\`BaoCode-$marketing-arm64.dmg\`
-          - Intel：\`BaoCode-$marketing-x64.dmg\`
+          - Apple 芯片（M1 及以后）：\`Baogong-$marketing-arm64.dmg\`
+          - Intel：\`Baogong-$marketing-x64.dmg\`
 
-          打开 dmg，把 BaoCode 拖进“应用程序”。它没有经过苹果公证（ad hoc 签名），首次打开前在“终端”里运行：
+          打开 dmg，把包工头拖进“应用程序”。它没有经过苹果公证（ad hoc 签名），首次打开前在“终端”里运行：
 
           \`\`\`
-          xattr -dr com.apple.quarantine /Applications/BaoCode.app
+          xattr -dr com.apple.quarantine /Applications/Baogong.app
           \`\`\`
 
-          它和官方版是同一个应用标识（\`dev.baocode.desktop\`）：两者不能同时安装，装官方版会覆盖它。它不会自动更新，也不向官方发送使用统计。
+          它可以和官方 BaoCode 同时安装，但两者共用同一份数据（会话、设置），不要同时打开。它不会自动更新，也不向官方发送使用统计。
 
           ## License / 许可证
 
           GPL-3.0 (\`LICENSE\` below). The corresponding source is this tag, \`$GITHUB_REF_NAME\` (${GITHUB_SHA::7}): the Source code archives below.
           EOF
           gh release delete "$GITHUB_REF_NAME" --yes 2>/dev/null || true
-          gh release create "$GITHUB_REF_NAME" --title "BaoCode $GITHUB_REF_NAME (unofficial fork)" \
+          gh release create "$GITHUB_REF_NAME" --title "Baogong (包工头) $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/notes.md" \
-            build/installers/BaoCode-$marketing-arm64.dmg \
-            build/installers/BaoCode-$marketing-x64.dmg \
+            build/installers/Baogong-$marketing-arm64.dmg \
+            build/installers/Baogong-$marketing-x64.dmg \
             build/installers/LICENSE

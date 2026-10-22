@@ -18,8 +18,8 @@
 //                                                fetch_remote_server.dart)
 //                                                instead of building one
 //
-// They land in build/installers/: BaoCode-<version>-<arch>.dmg and
-// BaoCode-<version>-mac-<arch>.zip, arch arm64 or x64; beside them,
+// They land in build/installers/: Baogong-<version>-<arch>.dmg and
+// Baogong-<version>-mac-<arch>.zip, arch arm64 or x64; beside them,
 // remote/<VERSION>/, the remote server's gzipped builds, which the app
 // downloads instead of carrying them (tool/build_remote_server.dart), to
 // upload with the release.
@@ -69,6 +69,14 @@ const _remoteReleaseRelative = 'build/remote-release';
 
 /// The browser's native messaging host, beside the app's executable.
 const _browserHost = 'baocode-browser-host';
+
+/// This fork's name, Baogong (包工头): the app's folder in the disk image
+/// and in Applications, beside upstream's BaoCode.app; its installers'.
+/// Inside, the executable is still BaoCode, as flutter builds it.
+const _appName = 'Baogong';
+
+/// Its name in Chinese (Info.plist's, put in each app before it is signed).
+const _localizedNamesRelative = 'macos/packaging/zh-Hans.lproj';
 
 /// What has to be in the .app for it to start. As on Windows, a build that
 /// failed late still leaves an .app behind that looks complete — these are
@@ -192,11 +200,15 @@ Future<void> main(List<String> arguments) async {
   final made = <File>[];
   for (final MapEntry(key: lipoArch, value: arch) in _architectures.entries) {
     _step('Making the $arch app');
-    final app = Directory('${root.path}/$_thinRelative/$arch/BaoCode.app');
+    final app = Directory('${root.path}/$_thinRelative/$arch/$_appName.app');
     if (app.parent.existsSync()) app.parent.deleteSync(recursive: true);
     app.parent.createSync(recursive: true);
     await _run('ditto', ['--arch', lipoArch, bundle.path, app.path], root.path);
     await _checkArchitecture(app, lipoArch);
+    await _run('ditto', [
+      '${root.path}/$_localizedNamesRelative',
+      '${app.path}/Contents/Resources/zh-Hans.lproj',
+    ], root.path);
     _step(
       'Signing the $arch app${signing.adHoc ? '' : ' as ${signing.identity}'}',
     );
@@ -204,7 +216,7 @@ Future<void> main(List<String> arguments) async {
 
     _step('Making the $arch disk image');
     final dmg = File(
-      '${installers.path}/BaoCode-${version.marketing}-$arch.dmg',
+      '${installers.path}/$_appName-${version.marketing}-$arch.dmg',
     );
     // A window with the app, an arrow and an Applications shortcut to drag
     // it onto, on the background tool/dmg_background.swift draws (the
@@ -213,7 +225,7 @@ Future<void> main(List<String> arguments) async {
     if (dmg.existsSync()) dmg.deleteSync();
     await _run(createDmg, [
       '--volname',
-      'BaoCode ${version.marketing}',
+      '$_appName ${version.marketing}',
       '--background',
       '${root.path}/$_dmgBackgroundRelative',
       '--window-size',
@@ -222,11 +234,11 @@ Future<void> main(List<String> arguments) async {
       '--icon-size',
       '128',
       '--icon',
-      'BaoCode.app',
+      '$_appName.app',
       '165',
       '145',
       '--hide-extension',
-      'BaoCode.app',
+      '$_appName.app',
       '--app-drop-link',
       '495',
       '145',
@@ -257,7 +269,7 @@ Future<void> main(List<String> arguments) async {
     // permissions and extended attributes, which a framework's signature
     // depends on).
     final zip = File(
-      '${installers.path}/BaoCode-${version.marketing}-mac-$arch.zip',
+      '${installers.path}/$_appName-${version.marketing}-mac-$arch.zip',
     );
     if (zip.existsSync()) zip.deleteSync();
     await _run('ditto', [
@@ -291,7 +303,7 @@ Future<void> main(List<String> arguments) async {
     final mb = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(1);
     stdout.writeln('  ${file.path}  ($mb MB)');
   }
-  final base = '${installers.path}/BaoCode-${version.marketing}';
+  final base = '${installers.path}/$_appName-${version.marketing}';
   stdout.writeln();
   if (servers.isEmpty) {
     stdout

@@ -23,7 +23,7 @@ ContextMenuInstaller? platformContextMenu() {
 /// should the system not have yet.
 class MacContextMenu implements ContextMenuInstaller {
   MacContextMenu({
-    this.extensionId = 'dev.baocode.desktop.FinderExtension',
+    this.extensionId = 'io.github.y0un922.baogong.FinderExtension',
     String? extensionPath,
     ShellCommandRunner? run,
   }) : extensionPath = extensionPath ?? _bundledExtension(),

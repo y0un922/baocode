@@ -8,7 +8,7 @@
 PRODUCT_NAME = BaoCode
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = dev.baocode.desktop
+PRODUCT_BUNDLE_IDENTIFIER = io.github.y0un922.baogong
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 BaoCode. All rights reserved.

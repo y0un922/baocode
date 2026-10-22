@@ -69,7 +69,7 @@ void main() {
         ),
       );
       expect(
-        find.text("BaoCode's data folder is not available"),
+        find.text("Baogong's data folder is not available"),
         findsOneWidget,
       );
       expect(find.text(missing().path), findsOneWidget);
@@ -162,7 +162,7 @@ void main() {
         ),
       );
       expect(
-        find.text("BaoCode's data folder setting cannot be read"),
+        find.text("Baogong's data folder setting cannot be read"),
         findsOneWidget,
       );
       expect(find.textContaining('Fix or delete'), findsOneWidget);
@@ -228,7 +228,7 @@ void main() {
       await tester.tap(find.text('start'));
       await tester.pump();
       expect(
-        find.text('Remove the data BaoCode left in its previous folder?'),
+        find.text('Remove the data Baogong left in its previous folder?'),
         findsOneWidget,
       );
       expect(find.textContaining('User, argv.json, state'), findsOneWidget);

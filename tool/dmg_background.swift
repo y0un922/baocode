@@ -16,9 +16,10 @@ let appCentre = NSPoint(x: 165, y: 145)
 let applicationsCentre = NSPoint(x: 495, y: 145)
 let iconSize: CGFloat = 128
 
-/// Ink: the app icon's gold, deepened to read on the light background.
-let inkLight = NSColor(srgbRed: 0.91, green: 0.67, blue: 0.25, alpha: 1)
-let inkDark = NSColor(srgbRed: 0.77, green: 0.50, blue: 0.13, alpha: 1)
+/// Ink: the app icon's orange (tool/fork_icon.py), deepened to read on
+/// the light background.
+let inkLight = NSColor(srgbRed: 0.98, green: 0.56, blue: 0.20, alpha: 1)
+let inkDark = NSColor(srgbRed: 0.85, green: 0.42, blue: 0.10, alpha: 1)
 
 /// A pen stroke along [curve] (0 to 1): [width] at its widest, thinner at
 /// both ends, its edges wobbling a little as a hand's do ([seed] varies
@@ -129,9 +130,9 @@ func draw(scale: CGFloat) -> NSBitmapImageRep {
     attributed.draw(
       in: NSRect(x: 0, y: top, width: size.width, height: fontSize * 1.6))
   }
-  line("将 BaoCode 拖到 Applications 文件夹即可完成安装",
+  line("将包工头拖到 Applications 文件夹即可完成安装",
        fontSize: 14, weight: .medium, white: 0.24, top: 285)
-  line("Drag BaoCode to the Applications folder to install",
+  line("Drag Baogong to the Applications folder to install",
        fontSize: 12, weight: .regular, white: 0.50, top: 309)
 
   NSGraphicsContext.restoreGraphicsState()
