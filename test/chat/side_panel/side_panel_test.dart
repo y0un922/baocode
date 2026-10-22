@@ -2209,26 +2209,78 @@ void main() {
   });
 
   testWidgets('Toggle Side Panel\'s keys, as upstream\'s secondary side '
-      'bar\'s: Ctrl+Alt+B, ⌥⌘B on macOS', (tester) async {
+      'bar\'s: Ctrl+Alt+B, ⌥⌘B on macOS; the keyboard in the panel shown, '
+      'the panel hidden from it', (tester) async {
     await pumpLoaded(tester);
     final meta = defaultTargetPlatform == TargetPlatform.macOS;
-    await press(
-      tester,
-      LogicalKeyboardKey.keyB,
-      alt: true,
-      meta: meta,
-      control: !meta,
-    );
+    Future<void> toggle() async {
+      await press(
+        tester,
+        LogicalKeyboardKey.keyB,
+        alt: true,
+        meta: meta,
+        control: !meta,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await toggle();
+    expect(find.byType(AgentSidePanelView), findsOneWidget);
+    final panel = tester
+        .widget<AgentSidePanelView>(find.byType(AgentSidePanelView))
+        .panel;
+    expect(panel.focusNode.hasFocus, isTrue);
+
+    // The keyboard elsewhere, it goes back to the panel, still shown.
+    panel.focusNode.unfocus();
+    await tester.pumpAndSettle();
+    await toggle();
+    expect(find.byType(AgentSidePanelView), findsOneWidget);
+    expect(panel.focusNode.hasFocus, isTrue);
+
+    await toggle();
+    expect(find.byType(AgentSidePanelView), findsNothing);
+    expect(panel.focusNode.hasFocus, isFalse);
+
+    // Show Agent Files (⇧⌘E) puts the keyboard there too.
+    await press(tester, LogicalKeyboardKey.keyE, shift: true, meta: true);
     await tester.pumpAndSettle();
     expect(find.byType(AgentSidePanelView), findsOneWidget);
-    await press(
-      tester,
-      LogicalKeyboardKey.keyB,
-      alt: true,
-      meta: meta,
-      control: !meta,
-    );
+    expect(panel.focusNode.hasFocus, isTrue);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+
+  testWidgets('⇧⌥⌘B shows or hides the side panel\'s list; the panel '
+      'hidden, it shows with its list', (tester) async {
+    await pumpLoaded(tester);
+    Future<void> toggleList() async {
+      await press(
+        tester,
+        LogicalKeyboardKey.keyB,
+        shift: true,
+        alt: true,
+        meta: true,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final list = find.byKey(const ValueKey('side-panel-list'));
+    await tester.tap(find.byType(SidePanelToggle));
+    await tester.pumpAndSettle();
+    expect(list, findsOneWidget);
+
+    await toggleList();
+    expect(find.byType(AgentSidePanelView), findsOneWidget);
+    expect(list, findsNothing);
+    await toggleList();
+    expect(list, findsOneWidget);
+
+    await toggleList();
+    expect(list, findsNothing);
+    await tester.tap(find.byType(SidePanelToggle));
     await tester.pumpAndSettle();
     expect(find.byType(AgentSidePanelView), findsNothing);
+    await toggleList();
+    expect(find.byType(AgentSidePanelView), findsOneWidget);
+    expect(list, findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 }

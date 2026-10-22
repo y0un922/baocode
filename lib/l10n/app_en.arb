@@ -646,6 +646,7 @@
   "cmdSidePanelFiles": "Show Agent Files",
   "cmdSidePanelTerminal": "Toggle Agent Terminal",
   "cmdSidePanelNewTerminal": "New Agent Terminal",
+  "cmdSidePanelToggleList": "Toggle Side Panel List",
   "cmdSidePanelCloseTab": "Close Side Panel Tab",
   "sidePanelFiles": "Files",
   "sidePanelTerminal": "Terminal",

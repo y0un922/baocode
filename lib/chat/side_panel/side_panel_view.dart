@@ -1528,9 +1528,12 @@ class _SectionBar extends StatelessWidget {
                     icon: panel.listShown
                         ? Codicons.layoutSidebarLeft
                         : Codicons.layoutSidebarLeftOff,
-                    tooltip: panel.listShown
-                        ? l10n.sidePanelHideList
-                        : l10n.sidePanelShowList,
+                    tooltip: KeybindingService.instance.titleWithKeybinding(
+                      panel.listShown
+                          ? l10n.sidePanelHideList
+                          : l10n.sidePanelShowList,
+                      ChatCommandIds.sidePanelToggleList,
+                    ),
                     onPressed: panel.toggleList,
                   ),
                 ),

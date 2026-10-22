@@ -87,6 +87,11 @@ abstract final class ChatCommandIds {
   /// A new terminal in the side panel, the keyboard in it.
   static const sidePanelNewTerminal = 'baocode.chat.sidePanel.newTerminal';
 
+  /// Shows or hides the list at the left of the side panel's pages (the
+  /// files' tree, the terminals'); the panel and its list shown where it
+  /// is hidden.
+  static const sidePanelToggleList = 'baocode.chat.sidePanel.toggleList';
+
   /// Closes the side panel's tab in front, on its page shown; hides the
   /// panel where the page has none.
   static const sidePanelCloseTab = 'baocode.chat.sidePanel.closeTab';
@@ -214,6 +219,7 @@ final List<CommandInfo> chatExtraCommands = [
     (ChatCommandIds.sidePanelFiles, 'Show Agent Files'),
     (ChatCommandIds.sidePanelTerminal, 'Toggle Agent Terminal'),
     (ChatCommandIds.sidePanelNewTerminal, 'New Agent Terminal'),
+    (ChatCommandIds.sidePanelToggleList, 'Toggle Side Panel List'),
     (ChatCommandIds.sidePanelCloseTab, 'Close Side Panel Tab'),
     (ChatCommandIds.closeTab, 'Close Chat'),
     (ChatCommandIds.focusInput, 'Focus Chat Input'),
@@ -415,6 +421,12 @@ final List<KeybindingEntry> chatExtraKeybindings = [
     key: 'ctrl+alt+b',
     mac: 'alt+cmd+b',
     command: ChatCommandIds.toggleSidePanel,
+    when: _window,
+  ),
+  const KeybindingEntry(
+    key: 'ctrl+shift+alt+b',
+    mac: 'shift+alt+cmd+b',
+    command: ChatCommandIds.sidePanelToggleList,
     when: _window,
   ),
   const KeybindingEntry(

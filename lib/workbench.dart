@@ -3315,18 +3315,54 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
   }
 
   Map<String, VoidCallback> _sidePanelCommands() => {
-    ChatCommandIds.toggleSidePanel: _toggleSidePanel,
+    ChatCommandIds.toggleSidePanel: _toggleSidePanelFocus,
     ChatCommandIds.toggleSidePanelPosition: () =>
         _sidePanel.atLeft = !_sidePanel.atLeft,
     if (_sidePanel.focusNode.hasFocus)
       ChatCommandIds.sidePanelCloseTab: _closeSidePanelTab,
     for (final section in alwaysShownSections)
       if (section != SidePanelSection.terminal)
-        section.command!: () => _showSidePanelSection(section),
+        section.command!: () {
+          _showSidePanelSection(section);
+          _focusSidePanel();
+        },
     ChatCommandIds.sidePanelTerminal: _toggleSidePanelTerminal,
     ChatCommandIds.sidePanelNewTerminal: () =>
         _showSidePanelTerminal(fresh: true),
+    ChatCommandIds.sidePanelToggleList: _toggleSidePanelList,
   };
+
+  /// The side panel's list (⇧⌥⌘B); the panel and its list shown where the
+  /// panel is hidden.
+  void _toggleSidePanelList() {
+    if (_sidePanelShown && !_sidePanelHidden) return _sidePanel.toggleList();
+    _sidePanel.show();
+    if (!_sidePanel.listShown) _sidePanel.toggleList();
+  }
+
+  /// Toggle Side Panel from the keys (⌥⌘B), as ⌥⌘T for any page: the
+  /// panel, the keyboard in it; from it, hidden and the keyboard back in
+  /// the chat.
+  void _toggleSidePanelFocus() {
+    final thread = _agentThread ?? _workspace.current;
+    if (thread == null) return;
+    if (_sidePanelShown && !_sidePanelHidden && _sidePanel.focusNode.hasFocus) {
+      _sidePanel.hide();
+      _focusCurrentChat();
+      return;
+    }
+    if (_sidePanel.tabsOf(thread.session).section ==
+        SidePanelSection.terminal) {
+      return _showSidePanelTerminal(fresh: false);
+    }
+    _sidePanel.show();
+    _focusSidePanel();
+  }
+
+  /// The keyboard in the side panel, once shown.
+  void _focusSidePanel() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted && _sidePanel.shown) _sidePanel.focusNode.requestFocus();
+  });
 
   /// Toggle Agent Terminal (⌥⌘T): the side panel's terminal, the keyboard
   /// in it; from it, the panel hidden and the keyboard back in the chat.

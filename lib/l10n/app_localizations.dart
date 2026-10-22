@@ -2834,6 +2834,12 @@ abstract class AppLocalizations {
   /// **'New Agent Terminal'**
   String get cmdSidePanelNewTerminal;
 
+  /// No description provided for @cmdSidePanelToggleList.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Side Panel List'**
+  String get cmdSidePanelToggleList;
+
   /// No description provided for @cmdSidePanelCloseTab.
   ///
   /// In en, this message translates to:
