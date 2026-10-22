@@ -860,6 +860,7 @@ class PiKernel
     }
     _userItems.removeRange(at, _userItems.length);
     _resumeFile = file;
+    _restoreTodos(await readPiHistory(file) ?? const []);
     emit(Rewound(nextSeq, itemId: itemId, index: index));
     return true;
   }
@@ -988,6 +989,14 @@ class PiKernel
         _toolUpdated(message);
       case 'tool_execution_end':
         _toolEnded(message);
+      case 'entry_appended':
+        if (message['entry'] case {
+          'type': 'custom',
+          'customType': 'rpiv-todo-state',
+          'data': final details,
+        }) {
+          _reportTodos(details);
+        }
       case 'compaction_start':
         _meter.pause();
         emit(
@@ -1227,6 +1236,12 @@ class PiKernel
     final name = message['toolName'] as String? ?? '';
     final args = (message['args'] as Map?)?.cast<String, Object?>() ?? {};
     _tools[id] = (name: name, args: args, started: DateTime.now());
+    if ((name, args['questions']) case (
+      'ask_user_question',
+      final List questions,
+    )) {
+      _questionnaires[id] = _PiQuestionnaire(questions);
+    }
     emit(
       ItemUpserted(
         nextSeq,
@@ -1262,6 +1277,10 @@ class PiKernel
     final args = tool?.args ?? const {};
     final result = (message['result'] as Map?)?.cast<String, Object?>() ?? {};
     final failed = message['isError'] == true;
+    if (name == 'todo' && !failed) _reportTodos(result['details']);
+    if (_questionnaires.remove(id)?.dialogId case final requestId?) {
+      _resolveDialog(requestId);
+    }
     final item = _finishedTool(name, args, result, failed: failed);
     emit(ItemUpserted(nextSeq, id, item));
     if (failed || item is! CodeDiffItem) return;
@@ -1373,6 +1392,24 @@ class PiKernel
         return ToolCallItem(
           kind: ToolKind.listDir,
           target: path.isEmpty ? '.' : path,
+          output: output,
+          status: status,
+        );
+      case 'todo':
+        return ToolCallItem(
+          kind: ToolKind.todo,
+          target: arg('subject'),
+          output: output,
+          status: status,
+        );
+      case 'ask_user_question':
+        return ToolCallItem(
+          kind: ToolKind.question,
+          target: [
+            if (args['questions'] case final List questions)
+              for (final question in questions.whereType<Map>())
+                question['header'] ?? question['question'] ?? '',
+          ].join(' · '),
           output: output,
           status: status,
         );
@@ -1527,6 +1564,7 @@ class PiKernel
     for (final (index, message) in messages.indexed) {
       if (message['role'] == 'user') _userItems.add('pi:history:$index');
     }
+    _restoreTodos(messages);
     _shownFrom = _turnsFrom(messages.length, _firstTurns);
     _translateHistory(_shownFrom, messages.length);
     _loadingHistory = false;
@@ -1629,10 +1667,43 @@ class PiKernel
     _ => '',
   };
 
+  void _reportTodos(Object? details) {
+    if (details case {'tasks': final List tasks}) {
+      emit(
+        TodosReported(nextSeq, [
+          for (final task in tasks.whereType<Map>())
+            if (task['status'] != 'deleted')
+              TodoEntry(task['subject'] as String, switch (task['status']) {
+                'in_progress' => TodoStatus.inProgress,
+                'completed' => TodoStatus.completed,
+                _ => TodoStatus.pending,
+              }, activeForm: task['activeForm'] as String?),
+        ]),
+      );
+    }
+  }
+
+  void _restoreTodos(List<Map<String, Object?>> messages) {
+    final snapshot = messages.reversed.where(
+      (message) =>
+          ((message['role'] == 'toolResult' && message['toolName'] == 'todo') ||
+              (message['role'] == 'custom' &&
+                  message['customType'] == 'rpiv-todo-state')) &&
+          (message['details'] as Map?)?['tasks'] is List,
+    );
+    _reportTodos(snapshot.firstOrNull?['details'] ?? {'tasks': const []});
+  }
+
   // --- Extension dialogs ------------------------------------------------------
 
+  final Map<String, _PiQuestionnaire> _questionnaires = {};
+
   /// Dialogs awaiting the user: our request id → pi's, and what it asks.
-  final Map<String, ({String id, String method})> _dialogs = {};
+  final Map<
+    String,
+    ({String id, String method, _PiQuestionnaire? questionnaire})
+  >
+  _dialogs = {};
   final Map<String, Timer> _dialogTimers = {};
 
   static const _yes = 'Yes';
@@ -1642,7 +1713,33 @@ class PiKernel
   void _extensionRequest(Map<String, Object?> request) {
     final piId = request['id'] as String? ?? '';
     final title = _stripAnsi(request['title'] as String? ?? '');
-    switch (request['method']) {
+    final method = request['method'] as String? ?? '';
+    if (_stopping > 0 &&
+        const {'select', 'confirm', 'input', 'editor'}.contains(method)) {
+      _transport?.write({
+        'type': 'extension_ui_response',
+        'id': piId,
+        'cancelled': true,
+      });
+      return;
+    }
+    for (final questionnaire in _questionnaires.values) {
+      if (!questionnaire.matches(method, title)) continue;
+      if (questionnaire.answer != null) {
+        _replyQuestionnaire(piId, questionnaire);
+      } else {
+        _ask(
+          piId,
+          method,
+          'pi has a question',
+          questionnaire.questions,
+          request['timeout'],
+          questionnaire: questionnaire,
+        );
+      }
+      return;
+    }
+    switch (method) {
       case 'select':
         _ask(piId, 'select', title, [
           Question(
@@ -1695,10 +1792,12 @@ class PiKernel
     String method,
     String title,
     List<Question> questions,
-    Object? timeout,
-  ) {
+    Object? timeout, {
+    _PiQuestionnaire? questionnaire,
+  }) {
     final id = 'pi-ui:$piId';
-    _dialogs[id] = (id: piId, method: method);
+    questionnaire?.dialogId = id;
+    _dialogs[id] = (id: piId, method: method, questionnaire: questionnaire);
     if (timeout case final int ms) {
       // pi answers it itself then.
       _dialogTimers[id] = Timer(Duration(milliseconds: ms), () {
@@ -1718,10 +1817,14 @@ class PiKernel
 
   @override
   void answer(String requestId, InteractionAnswer answer) {
-    final dialog = _dialogs.remove(requestId);
+    final dialog = _dialogs[requestId];
     if (dialog == null) return;
-    _dialogTimers.remove(requestId)?.cancel();
-    emit(InteractionResolved(nextSeq, requestId));
+    _resolveDialog(requestId);
+    if (dialog.questionnaire case final questionnaire?) {
+      questionnaire.answer = answer as QuestionAnswer;
+      _replyQuestionnaire(dialog.id, questionnaire);
+      return;
+    }
     final pick = switch (answer) {
       QuestionAnswer(skipped: false, :final picks)
           when picks.isNotEmpty && picks.first.isNotEmpty =>
@@ -1740,12 +1843,95 @@ class PiKernel
     });
   }
 
+  void _replyQuestionnaire(String piId, _PiQuestionnaire questionnaire) {
+    final value = questionnaire.nextReply();
+    _transport?.write({
+      'type': 'extension_ui_response',
+      'id': piId,
+      if (value == null) 'cancelled': true else 'value': value,
+    });
+  }
+
+  void _resolveDialog(String id) {
+    _dialogTimers.remove(id)?.cancel();
+    if (_dialogs.remove(id) != null) emit(InteractionResolved(nextSeq, id));
+  }
+
   void _resolveDialogs() {
-    for (final id in _dialogs.keys) {
-      _dialogTimers.remove(id)?.cancel();
-      emit(InteractionResolved(nextSeq, id));
+    for (final id in _dialogs.keys.toList()) {
+      _transport?.write({
+        'type': 'extension_ui_response',
+        'id': _dialogs[id]!.id,
+        'cancelled': true,
+      });
+      _resolveDialog(id);
     }
-    _dialogs.clear();
+    _questionnaires.clear();
+  }
+}
+
+/// Keep the full questionnaire in our panel; feed its answers to the plugin's
+/// sequential select/input RPC dialogs without showing those degraded dialogs.
+class _PiQuestionnaire {
+  _PiQuestionnaire(List rawQuestions)
+    : questions = [
+        for (final raw in rawQuestions)
+          if (raw case {
+            'question': final String prompt,
+            'options': final List options,
+          })
+            Question(
+              prompt: _text(prompt),
+              header: _text(raw['header']),
+              allowMultiple: raw['multiSelect'] == true,
+              options: [
+                for (final option in options)
+                  if (option case {'label': final String label})
+                    QuestionOption(
+                      _text(label),
+                      description: _text(option['description']),
+                      preview: switch (option['preview']) {
+                        final String preview => _text(preview),
+                        _ => null,
+                      },
+                    ),
+              ],
+            ),
+      ];
+
+  // Match the plugin's normalization before comparing dialog titles or labels.
+  static String _text(Object? value) =>
+      '${value ?? ''}'.replaceAll('\r\n', '\n').replaceAll('\r', '');
+
+  final List<Question> questions;
+  String? dialogId;
+  QuestionAnswer? answer;
+  int _next = 0;
+
+  bool matches(String method, String title) {
+    if (_next == questions.length) return false;
+    final question = questions[_next];
+    if (method != (question.allowMultiple ? 'input' : 'select')) return false;
+    // shortcut: RPC has no tool-call id; match rpiv's title until it exposes one.
+    final prefix =
+        '${question.header.isEmpty ? '' : '[${question.header}] '}'
+        '${question.prompt}';
+    return title == prefix || title.startsWith('$prefix\n\n');
+  }
+
+  String? nextReply() {
+    final reply = answer!;
+    if (reply.skipped) return null;
+    final question = questions[_next];
+    final picks = reply.picks[_next++];
+    if (!question.allowMultiple) return picks.firstOrNull;
+    final labels = [for (final option in question.options) option.label];
+    final selected = [
+      for (final pick in picks)
+        if (labels.contains(pick)) labels.indexOf(pick) + 1,
+    ];
+    final custom = picks.where((pick) => !labels.contains(pick)).join('; ');
+    return '${selected.join(',')}${custom.isEmpty ? '' : '; $custom'}';
   }
 }
 

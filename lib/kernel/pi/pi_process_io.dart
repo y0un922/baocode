@@ -96,6 +96,16 @@ Future<List<Map<String, Object?>>?> readPiHistory(String file) async {
         switch (entry) {
           case {'type': 'message', 'message': final Map<Object?, Object?> m}:
             branch.add(m.cast());
+          case {
+            'type': 'custom',
+            'customType': 'rpiv-todo-state',
+            'data': final details,
+          }:
+            branch.add({
+              'role': 'custom',
+              'customType': 'rpiv-todo-state',
+              'details': details,
+            });
           case {'type': 'compaction'}:
             branch.add(const {'role': 'compactionSummary'});
         }

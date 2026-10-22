@@ -609,6 +609,531 @@ void main() {
       });
     });
 
+    group('pi plugin UI', () {
+      const questions = [
+        {
+          'question': 'Which layout?',
+          'header': 'Layout',
+          'options': [
+            {
+              'label': 'Compact',
+              'description': 'Less space',
+              'preview': 'A | B',
+            },
+            {'label': 'Wide', 'description': 'More space'},
+          ],
+        },
+        {
+          'question': 'Which features?',
+          'header': 'Features',
+          'multiSelect': true,
+          'options': [
+            {'label': 'Search', 'description': 'Find things'},
+            {'label': 'History', 'description': 'Keep things'},
+          ],
+        },
+        {
+          'question': 'What name?',
+          'header': 'Name',
+          'options': [
+            {'label': 'Alpha', 'description': 'First'},
+            {'label': 'Beta', 'description': 'Second'},
+          ],
+        },
+      ];
+      const tasks = [
+        {'id': 1, 'subject': 'Read code', 'status': 'completed'},
+        {
+          'id': 2,
+          'subject': 'Align UI',
+          'activeForm': 'Aligning UI',
+          'status': 'in_progress',
+        },
+        {'id': 3, 'subject': 'Run tests', 'status': 'pending'},
+        {'id': 4, 'subject': 'Removed task', 'status': 'deleted'},
+      ];
+
+      void startTool(
+        FakePi pi,
+        String id,
+        String name,
+        Map<String, Object?> args,
+      ) => pi.emit({
+        'type': 'tool_execution_start',
+        'toolCallId': id,
+        'toolName': name,
+        'args': args,
+      });
+
+      void dialog(FakePi pi, String id, String method, String title) =>
+          pi.emit({
+            'type': 'extension_ui_request',
+            'id': id,
+            'method': method,
+            'title': title,
+            if (method == 'select') 'options': ['An RPC option'],
+          });
+
+      test('todo snapshots feed the shared task panel, including clear and '
+          'custom entries from nested calls', () async {
+        final pi = FakePi();
+        final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+        addTearDown(kernel.dispose);
+        kernel.send(const KernelTurn(id: 't1', text: 'Work'));
+        await pumpEventQueue();
+
+        startTool(pi, 'todo1', 'todo', {'action': 'list'});
+        pi.emit({
+          'type': 'tool_execution_end',
+          'toolCallId': 'todo1',
+          'toolName': 'todo',
+          'isError': false,
+          'result': {
+            'content': [
+              {'type': 'text', 'text': 'Tasks'},
+            ],
+            'details': {'tasks': tasks},
+          },
+        });
+        await pumpEventQueue();
+        expect(transcript.todos.map((todo) => todo.content), [
+          'Read code',
+          'Align UI',
+          'Run tests',
+        ]);
+        expect(transcript.todos.map((todo) => todo.status), [
+          TodoStatus.completed,
+          TodoStatus.inProgress,
+          TodoStatus.pending,
+        ]);
+        expect(transcript.todos[1].activeForm, 'Aligning UI');
+        expect((transcript.itemAt(1) as ToolCallItem).kind, ToolKind.todo);
+
+        // A failed tool without a snapshot must not erase the task list.
+        startTool(pi, 'todo2', 'todo', {'action': 'update', 'id': 99});
+        pi.emit({
+          'type': 'tool_execution_end',
+          'toolCallId': 'todo2',
+          'toolName': 'todo',
+          'isError': true,
+          'result': {
+            'content': [
+              {'type': 'text', 'text': 'No such task'},
+            ],
+          },
+        });
+        await pumpEventQueue();
+        expect(transcript.todos, hasLength(3));
+        final failed = transcript.itemAt(2) as ToolCallItem;
+        expect(failed.status, ToolStatus.failed);
+        expect(failed.output, 'No such task');
+
+        pi.emit({
+          'type': 'entry_appended',
+          'entry': {
+            'type': 'custom',
+            'customType': 'rpiv-todo-state',
+            'data': {'tasks': const []},
+          },
+        });
+        await pumpEventQueue();
+        expect(transcript.todos, isEmpty);
+      });
+
+      test(
+        'full questionnaire keeps descriptions, previews and multiple '
+        'selection; answers drive subsequent RPC dialogs invisibly',
+        () async {
+          final pi = FakePi();
+          final (:kernel, :transcript, :events, starts: _) = piKernel([pi]);
+          addTearDown(kernel.dispose);
+          kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+          await pumpEventQueue();
+          startTool(pi, 'ask1', 'ask_user_question', {'questions': questions});
+          dialog(
+            pi,
+            'q1',
+            'select',
+            '[Layout] Which layout?\n\n--- 1. Compact preview ---\nA | B',
+          );
+          await pumpEventQueue();
+
+          final request = transcript.pendingInteraction as QuestionRequest;
+          expect(request.questions, hasLength(3));
+          expect(request.questions.first.prompt, 'Which layout?');
+          expect(request.questions.first.header, 'Layout');
+          expect(
+            request.questions.first.options.first.description,
+            'Less space',
+          );
+          expect(request.questions.first.options.first.preview, 'A | B');
+          expect(request.questions[1].allowMultiple, isTrue);
+          expect(request.questions.every((q) => q.allowOther), isTrue);
+          final tool = transcript.itemAt(1) as ToolCallItem;
+          expect(tool.kind, ToolKind.question);
+          expect(tool.target, 'Layout · Features · Name');
+
+          kernel.answer(
+            request.id,
+            const QuestionAnswer([
+              ['Compact'],
+              ['Search', 'History', 'Custom; text'],
+              ['My project'],
+            ]),
+          );
+          expect(pi.sent('extension_ui_response').last, {
+            'type': 'extension_ui_response',
+            'id': 'q1',
+            'value': 'Compact',
+          });
+          expect(transcript.pendingInteraction, isNull);
+
+          dialog(pi, 'q2', 'input', '[Features] Which features?\n\n1. Search');
+          dialog(pi, 'q3', 'select', '[Name] What name?');
+          await pumpEventQueue();
+          expect(pi.sent('extension_ui_response').map((m) => m['value']), [
+            'Compact',
+            '1,2; Custom; text',
+            'My project',
+          ]);
+          expect(events.whereType<InteractionRequested>(), hasLength(1));
+          expect(transcript.pendingInteraction, isNull);
+        },
+      );
+
+      test('normalizes question text the same way as the plugin', () async {
+        final pi = FakePi();
+        final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+        addTearDown(kernel.dispose);
+        kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+        await pumpEventQueue();
+        startTool(pi, 'ask1', 'ask_user_question', {
+          'questions': [
+            {
+              'question': 'Which\r\nlayout?',
+              'header': 'Lay\rout',
+              'options': [
+                {'label': 'Com\rpact', 'description': 'Less\r\nspace'},
+                {'label': 'Wide', 'description': 'More space'},
+              ],
+            },
+          ],
+        });
+        dialog(pi, 'q1', 'select', '[Layout] Which\nlayout?');
+        await pumpEventQueue();
+        final request = transcript.pendingInteraction as QuestionRequest;
+        expect(request.questions.single.options.first.label, 'Compact');
+        expect(
+          request.questions.single.options.first.description,
+          'Less\nspace',
+        );
+        kernel.answer(
+          request.id,
+          const QuestionAnswer([
+            ['Compact'],
+          ]),
+        );
+        expect(pi.sent('extension_ui_response').single['value'], 'Compact');
+      });
+
+      test('unvalidated tool arguments do not break the transcript', () async {
+        final pi = FakePi();
+        final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+        addTearDown(kernel.dispose);
+        kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+        await pumpEventQueue();
+        for (final (id, args) in [
+          ('ask1', {'questions': 'invalid'}),
+          (
+            'ask2',
+            {
+              'questions': [
+                {'question': 'Which?', 'options': 123},
+              ],
+            },
+          ),
+        ]) {
+          // pi emits tool_execution_start before validating its arguments.
+          startTool(pi, id, 'ask_user_question', args);
+          pi.emit({
+            'type': 'tool_execution_end',
+            'toolCallId': id,
+            'toolName': 'ask_user_question',
+            'isError': true,
+            'result': {
+              'content': [
+                {'type': 'text', 'text': 'Invalid tool arguments'},
+              ],
+            },
+          });
+        }
+        await pumpEventQueue();
+        expect(transcript.pendingInteraction, isNull);
+        expect(transcript.length, 3);
+        expect(
+          (transcript.itemAt(2) as ToolCallItem).status,
+          ToolStatus.failed,
+        );
+      });
+
+      test(
+        'multi-select first and numeric custom text remain structured',
+        () async {
+          final pi = FakePi();
+          final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+          addTearDown(kernel.dispose);
+          kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+          await pumpEventQueue();
+          startTool(pi, 'ask1', 'ask_user_question', {
+            'questions': [questions[1]],
+          });
+          dialog(pi, 'q1', 'input', '[Features] Which features?\n\n1. Search');
+          await pumpEventQueue();
+          final request = transcript.pendingInteraction as QuestionRequest;
+          expect(request.questions.single.allowMultiple, isTrue);
+          kernel.answer(
+            request.id,
+            const QuestionAnswer([
+              ['1,2; not option numbers'],
+            ]),
+          );
+          expect(
+            pi.sent('extension_ui_response').single['value'],
+            '; 1,2; not option numbers',
+          );
+        },
+      );
+
+      test(
+        'skipping cancels the plugin and a later call gets fresh answers',
+        () async {
+          final pi = FakePi();
+          final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+          addTearDown(kernel.dispose);
+          kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+          await pumpEventQueue();
+          startTool(pi, 'ask1', 'ask_user_question', {'questions': questions});
+          dialog(pi, 'q1', 'select', '[Layout] Which layout?');
+          await pumpEventQueue();
+          kernel.answer(
+            transcript.pendingInteraction!.id,
+            const QuestionAnswer([], skipped: true),
+          );
+          expect(pi.sent('extension_ui_response').single, {
+            'type': 'extension_ui_response',
+            'id': 'q1',
+            'cancelled': true,
+          });
+          pi.emit({
+            'type': 'tool_execution_end',
+            'toolCallId': 'ask1',
+            'toolName': 'ask_user_question',
+            'isError': false,
+            'result': {'content': const []},
+          });
+          startTool(pi, 'ask2', 'ask_user_question', {'questions': questions});
+          dialog(pi, 'q2', 'select', '[Layout] Which layout?');
+          await pumpEventQueue();
+          expect(transcript.pendingInteraction, isA<QuestionRequest>());
+          expect(pi.sent('extension_ui_response'), hasLength(1));
+
+          // A tool ending unexpectedly dismisses its still-open panel.
+          pi.emit({
+            'type': 'tool_execution_end',
+            'toolCallId': 'ask2',
+            'toolName': 'ask_user_question',
+            'isError': true,
+            'result': {'content': const []},
+          });
+          await pumpEventQueue();
+          expect(transcript.pendingInteraction, isNull);
+        },
+      );
+
+      test(
+        'other extension dialogs are not replaced by the questionnaire',
+        () async {
+          final pi = FakePi();
+          final (:kernel, :transcript, events: _, starts: _) = piKernel([pi]);
+          addTearDown(kernel.dispose);
+          kernel.send(const KernelTurn(id: 't1', text: 'Ask'));
+          await pumpEventQueue();
+          startTool(pi, 'ask1', 'ask_user_question', {'questions': questions});
+          dialog(pi, 'other', 'select', 'Another extension');
+          await pumpEventQueue();
+          final other = transcript.pendingInteraction as QuestionRequest;
+          expect(other.questions.single.prompt, 'Another extension');
+          expect(other.questions.single.allowOther, isFalse);
+          kernel.answer(
+            other.id,
+            const QuestionAnswer([
+              ['An RPC option'],
+            ]),
+          );
+          dialog(pi, 'q1', 'select', '[Layout] Which layout?');
+          await pumpEventQueue();
+          expect(
+            (transcript.pendingInteraction as QuestionRequest).questions,
+            hasLength(3),
+          );
+          kernel.cancel();
+          dialog(
+            pi,
+            'late',
+            'input',
+            '[Features] Which features?\n\n1. Search',
+          );
+          await pumpEventQueue();
+          expect(transcript.pendingInteraction, isNull);
+          expect(pi.sent('extension_ui_response').skip(1), [
+            {'type': 'extension_ui_response', 'id': 'q1', 'cancelled': true},
+            {'type': 'extension_ui_response', 'id': 'late', 'cancelled': true},
+          ]);
+        },
+      );
+
+      test('todo history restores the last snapshot outside the visible page '
+          'and loading older calls cannot roll it back', () async {
+        final pi = FakePi(
+          history: [
+            for (var i = 0; i < 25; i++) ...[
+              {'role': 'user', 'content': 'Turn $i'},
+              if (i < 2) ...[
+                {
+                  'role': 'assistant',
+                  'content': [
+                    {
+                      'type': 'toolCall',
+                      'id': 'todo$i',
+                      'name': 'todo',
+                      'arguments': {'action': 'list'},
+                    },
+                  ],
+                },
+                {
+                  'role': 'toolResult',
+                  'toolCallId': 'todo$i',
+                  'toolName': 'todo',
+                  'content': const [],
+                  'details': {'tasks': tasks.take(i + 1).toList()},
+                },
+              ],
+            ],
+            {
+              'role': 'toolResult',
+              'toolCallId': 'invalid',
+              'toolName': 'todo',
+              'isError': true,
+              'content': const [],
+            },
+          ],
+        );
+        final (:kernel, :transcript, events: _, starts: _) = piKernel(
+          [pi],
+          context: KernelContext(
+            resume: SessionRecord(
+              id: 's0',
+              title: 'Old',
+              updatedAt: DateTime(2026),
+              cwd: '/project',
+              path: '/missing/session.jsonl',
+            ),
+          ),
+        );
+        addTearDown(kernel.dispose);
+        kernel.prepare();
+        await pumpEventQueue();
+        expect(transcript.todos.map((t) => t.content), [
+          'Read code',
+          'Align UI',
+        ]);
+        expect(kernel.hasEarlierHistory, isTrue);
+        await kernel.loadEarlier();
+        expect(transcript.todos.map((t) => t.content), [
+          'Read code',
+          'Align UI',
+        ]);
+      });
+
+      test(
+        'custom todo snapshots follow the saved branch and rewind',
+        () async {
+          final dir = Directory.systemTemp.createTempSync('pi_todos_');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final file = File('${dir.path}/s1.jsonl')
+            ..writeAsStringSync(
+              [
+                {'type': 'session', 'id': 's1', 'cwd': '/project'},
+                {
+                  'type': 'message',
+                  'id': 'u1',
+                  'parentId': null,
+                  'message': {'role': 'user', 'content': 'First'},
+                },
+                {
+                  'type': 'custom',
+                  'id': 's1',
+                  'parentId': 'u1',
+                  'customType': 'rpiv-todo-state',
+                  'data': {
+                    'tasks': [tasks.first],
+                  },
+                },
+                {
+                  'type': 'message',
+                  'id': 'u2',
+                  'parentId': 's1',
+                  'message': {'role': 'user', 'content': 'Second'},
+                },
+                {
+                  'type': 'custom',
+                  'id': 'abandoned',
+                  'parentId': 'u2',
+                  'customType': 'rpiv-todo-state',
+                  'data': {'tasks': const []},
+                },
+                {
+                  'type': 'custom',
+                  'id': 'current',
+                  'parentId': 'u2',
+                  'customType': 'rpiv-todo-state',
+                  'data': {'tasks': tasks},
+                },
+              ].map(jsonEncode).join('\n'),
+            );
+          final (:kernel, :transcript, events: _, :starts) = piKernel(
+            [FakePi(sessionFile: file.path)],
+            context: KernelContext(
+              resume: SessionRecord(
+                id: 's1',
+                title: 'First',
+                updatedAt: DateTime(2026),
+                cwd: '/project',
+                path: file.path,
+              ),
+            ),
+          );
+          addTearDown(kernel.dispose);
+          for (var i = 0; i < 100 && kernel.loadingHistory; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+          }
+          expect(starts, isEmpty);
+          expect(transcript.todos, hasLength(3));
+          expect(shown(transcript), ['user: First', 'user: Second']);
+          expect(
+            await kernel.rewind(itemId: 'pi:history:2', index: 1, turns: 1),
+            isTrue,
+          );
+          expect(transcript.todos.map((t) => t.content), ['Read code']);
+          expect(
+            await kernel.rewind(itemId: 'pi:history:0', index: 0, turns: 1),
+            isTrue,
+          );
+          expect(transcript.todos, isEmpty);
+        },
+      );
+    });
+
     test('pi gone mid-turn: the turn ends saying why; restarted, it goes '
         'on with the session', () async {
       final first = FakePi();
