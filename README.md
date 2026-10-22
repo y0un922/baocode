@@ -1,8 +1,8 @@
 # BaoCode
 
-> **Unofficial fork.** This is [y0un922/baocode](https://github.com/y0un922/baocode), a personal modification of [baocode-dev/baocode](https://github.com/baocode-dev/baocode) 1.4.0, changed since October 2026; not made or supported by the BaoCode developers. Its changes are in [docs/fork.md](docs/fork.md) and its git history. Licensed under the GPL-3.0, as upstream.
+> **Unofficial fork.** This is [y0un922/baocode](https://github.com/y0un922/baocode), a personal modification of [baocode-dev/baocode](https://github.com/baocode-dev/baocode) 1.4.0 with selected changes of 1.5.0, changed since October 2026; not made or supported by the BaoCode developers. Its changes are in [docs/fork.md](docs/fork.md) and its git history. Licensed under the GPL-3.0, as upstream.
 >
-> **非官方修改版。** 基于 [baocode-dev/baocode](https://github.com/baocode-dev/baocode) 1.4.0，自 2026 年 10 月起修改，自用分享，与官方开发者无关；问题请找本仓库，不要报给官方。改动见 [docs/fork.md](docs/fork.md) 和提交历史。许可证同上游，为 GPL-3.0。
+> **非官方修改版。** 基于 [baocode-dev/baocode](https://github.com/baocode-dev/baocode) 1.4.0 并选择性合入 1.5.0 的部分改动，自 2026 年 10 月起修改，自用分享，与官方开发者无关；问题请找本仓库，不要报给官方。改动见 [docs/fork.md](docs/fork.md) 和提交历史。许可证同上游，为 GPL-3.0。
 
 <a href="https://trendshift.io/repositories/289180?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-289180" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/289180/daily?language=Dart" alt="baocode-dev%2Fbaocode | Trendshift" width="250" height="55"/></a>
 
