@@ -855,9 +855,13 @@ class TerminalInstance extends ChangeNotifier {
 }
 
 /// The command line in VS Code's exit message: the executable, then each
-/// argument quoted (joined by commas, as its `join()` does).
+/// argument quoted (joined by commas, as its `join()` does). An argument
+/// longer than a line is cut (an agent's ssh carries a whole script).
 String _commandLine(PtyLaunch launch) =>
-    launch.executable + launch.arguments.map((a) => " '$a'").join(',');
+    launch.executable +
+    launch.arguments
+        .map((a) => " '${a.length > 80 ? '${a.substring(0, 80)}…' : a}'")
+        .join(',');
 
 /// A message from the app written into the terminal: an inverse ` * `, then
 /// the message (VS Code's `formatMessageForTerminal`).

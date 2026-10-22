@@ -1,16 +1,19 @@
 // What an agent's `baocode-agent` command asks of the app: to start other
-// agents beside it, send them work, wait for them and read what they said
-// (the baocode-agents skill tells agents how). The command is a script
+// agents beside it, send them work, wait for them and read what they said,
+// and to work in terminals (agent_terminals.dart; the baocode-agents skill
+// tells agents how). The command is a script
 // that posts its arguments to a server of the app's, at the address each
 // agent's process is given; the answer is what it prints.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import '../chat/chat_session.dart' show ComposerMessage;
 import '../kernel/agent_kernel.dart' show KernelChoiceKind;
 import '../kernel/kernel_types.dart';
 import '../remote/remote_location.dart';
+import 'agent_terminals.dart';
 import 'chat_grid.dart' show PaneSide;
 import 'workspace.dart';
 
@@ -46,6 +49,9 @@ class AgentHost {
   }
 
   final Workspace workspace;
+
+  /// The terminals agents open (`baocode-agent terminal`).
+  late final AgentTerminals terminals = AgentTerminals(workspace);
 
   /// The server's address, once it listens (`http://127.0.0.1:<port>`).
   String? url;
@@ -92,8 +98,13 @@ class AgentHost {
       [for (var i = 0; i < 24; i++) _random.nextInt(256).toRadixString(16)]
           .join();
 
-  /// What `baocode-agent` [arguments] does, called by the agent of [key].
-  Future<AgentReply> run(String key, List<String> arguments) async {
+  /// What `baocode-agent` [arguments] does, called by the agent of [key];
+  /// [input], what a hook was given.
+  Future<AgentReply> run(
+    String key,
+    List<String> arguments, {
+    String? input,
+  }) async {
     final caller = _callers[key];
     if (caller == null || !workspace.threads.contains(caller)) {
       return const AgentReply.error('This agent is no longer in BaoCode.');
@@ -108,6 +119,8 @@ class AgentHost {
         'stop' => _stop(_worker(caller, rest)),
         'close' => _close(_worker(caller, rest)),
         'list' => _list(caller),
+        'terminal' => await terminals.run(caller, rest),
+        'hook' => _hook(rest, input),
         'help' || '--help' || '-h' => const AgentReply(usage),
         _ => AgentReply.error('Unknown command "$command".\n\n$usage'),
       };
@@ -130,7 +143,49 @@ Usage: baocode-agent <command>
   stop <id>            Stop what it is doing.
   close <id>           Close its pane, stopping it first: it stays in the
                        sidebar.
-  list                 The agents you started, and what each is doing.''';
+  list                 The agents you started, and what each is doing.
+  terminal <command>   Work in a terminal, on this machine or a server over
+                       ssh: see baocode-agent terminal help.''';
+
+  /// The hooks BaoCode gives its agents (see ClaudeLaunch.settings):
+  /// `pre-tool-use` turns ssh to a server in the agent's shell, out of the
+  /// user's sight, to a terminal of BaoCode's ([sshDestination]). Nothing
+  /// printed lets the tool be.
+  AgentReply _hook(List<String> arguments, String? input) {
+    if (arguments.firstOrNull != 'pre-tool-use' || input == null) {
+      return const AgentReply('');
+    }
+    final Object? event;
+    try {
+      event = jsonDecode(input);
+    } on FormatException {
+      return const AgentReply('');
+    }
+    if (event case {
+      'tool_name': 'Bash',
+      'tool_input': {'command': final String command},
+    }) {
+      if (sshDestination(command) case final host?) {
+        return AgentReply(
+          jsonEncode({
+            'hookSpecificOutput': {
+              'hookEventName': 'PreToolUse',
+              'permissionDecision': 'deny',
+              'permissionDecisionReason':
+                  'ssh in your shell runs out of the user\'s sight. In '
+                  'BaoCode, work on $host in a terminal the user watches: '
+                  '"\$BAOCODE_AGENT" terminal open --ssh $host, then '
+                  '"\$BAOCODE_AGENT" terminal run <id> \'<command>\' for each '
+                  'command (its output and exit code come back). See the '
+                  'baocode-agents skill. scp, rsync and git over ssh are '
+                  'fine as they are.',
+            },
+          }),
+        );
+      }
+    }
+    return const AgentReply('');
+  }
 
   AgentReply _start(AgentThread caller, List<String> arguments) {
     if (_workers.any((worker) => worker.thread == caller)) {

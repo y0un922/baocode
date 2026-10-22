@@ -190,6 +190,7 @@ class ClaudeLaunch {
 
   /// Given as flag settings, over the user's own: one `--settings`.
   Map<String, Object?> get settings => {
+    if (_agentCommand) 'hooks': sshHook,
     'attribution': ?_attribution,
     'useAutoModeDuringPlan': ?autoModeDuringPlan,
     'alwaysThinkingEnabled': ?thinking,
@@ -288,16 +289,52 @@ class ClaudeLaunch {
       sdkServers.map((name) => 'mcp__$name').join(','),
     ],
     '--append-system-prompt',
-    switch (instructions) {
-      final instructions? when instructions.isNotEmpty =>
-        '$appendedSystemPrompt\n\n$instructions',
-      _ => appendedSystemPrompt,
-    },
+    systemPrompt,
   ];
 
   /// What the chat asks of the agent besides Claude Code's own prompt: how
   /// to cite code and point at files, so the chat can open them.
   static const appendedSystemPrompt = '$citingCode\n\n$fileLinks';
+
+  /// What goes after Claude Code's own prompt: [appendedSystemPrompt], how
+  /// to work on servers where BaoCode gives the agent its command, then
+  /// [instructions].
+  String get systemPrompt => [
+    appendedSystemPrompt,
+    if (_agentCommand) servers,
+    if (instructions case final instructions? when instructions.isNotEmpty)
+      instructions,
+  ].join('\n\n');
+
+  /// The variable of BaoCode's command for its agents (AgentHost's
+  /// `commandVariable`): there for an agent BaoCode can be reached from.
+  static const agentCommandVariable = 'BAOCODE_AGENT';
+
+  bool get _agentCommand => variables.containsKey(agentCommandVariable);
+
+  /// Has the agent work on servers in a terminal the user watches, not in
+  /// its shell (a hook in [settings] turns ssh there away).
+  static const servers = '''
+<servers>
+To work on another machine over ssh, use a terminal in BaoCode that the user watches, not ssh in your shell tool: `"\$BAOCODE_AGENT" terminal open --ssh <host>` prints its id (t1, …); then `"\$BAOCODE_AGENT" terminal run t1 '<command>'` runs a command there and prints its output and exit code. The baocode-agents skill has the rest (type, keys, read, wait, close). scp, rsync and git over ssh are fine in your shell.
+</servers>''';
+
+  /// The hook that turns ssh in the agent's shell to a terminal of
+  /// BaoCode's (AgentHost answers it).
+  static const sshHook = {
+    'PreToolUse': [
+      {
+        'matcher': 'Bash',
+        'hooks': [
+          {
+            'type': 'command',
+            'command': '"\$$agentCommandVariable" hook pre-tool-use',
+            'timeout': 10,
+          },
+        ],
+      },
+    ],
+  };
 
   /// Has the agent cite code as ```` ```12:15:path ```` blocks, which the
   /// chat shows as cards that open the file there (see code_citation.dart).

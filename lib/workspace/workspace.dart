@@ -14,6 +14,8 @@ import '../chat/mock_conversation.dart';
 import '../icons/emoji_sheet.dart';
 import '../icons/icon_library.dart';
 import '../icons/project_icon.dart';
+import '../ide/terminal/terminal_instance.dart' show TerminalInstance;
+import '../ide/terminal/terminal_service.dart' show TerminalService;
 import '../kernel/agent_kernel.dart';
 import '../kernel/kernel_registry.dart';
 import '../kernel/kernel_types.dart';
@@ -202,6 +204,12 @@ class AgentThread {
     fast: _session?.selected(KernelChoiceKind.fast),
   );
 }
+
+/// Where an agent's terminals are made, and what brings one in sight.
+typedef AgentTerminalPlace = ({
+  TerminalService service,
+  void Function(TerminalInstance terminal) show,
+});
 
 typedef _Snapshot = ({
   ThreadStatus status,
@@ -2574,6 +2582,11 @@ class Workspace extends ChangeNotifier implements ColorThemeStorage {
 
   Map<String, String> _environmentOf(AgentThread thread) =>
       agentEnvironment?.call(thread) ?? const {};
+
+  /// The terminals of [thread]'s project that agents work in (see
+  /// AgentTerminals), in the chat window's side panel, and how one of them
+  /// is shown there; none without that window.
+  AgentTerminalPlace? Function(AgentThread thread)? agentTerminals;
 
   /// A new, empty agent in [project], listed here but not shown: on the
   /// kernel new agents start on, unless another [kernel]; [settings] over

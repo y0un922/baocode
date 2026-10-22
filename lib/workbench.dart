@@ -400,6 +400,22 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     _ => null,
   }?..addListener(_terminalsChanged);
 
+  /// An agent's terminals: in the side panel's terminal page, each in its
+  /// tab of the agent's conversation; the panel opens for the one focused,
+  /// the keyboard left where it is.
+  AgentTerminalPlace? _agentTerminals(AgentThread thread) =>
+      switch (_terminals) {
+        final terminals? => (
+          service: terminals.sidePanelTerminals(thread.project.path),
+          show: (shell) => _sidePanel.openTerminal(
+            thread.session,
+            shell,
+            show: identical(thread, _workspace.current),
+          ),
+        ),
+        null => null,
+      };
+
   /// The title bars' toggles and the window's commands follow them.
   void _terminalsChanged() {
     if (!_terminalTipRaised && (_terminals?.shown ?? false)) {
@@ -499,6 +515,10 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     SshHosts.instance.passwords.ask = _askSshPassword;
     // The servers saved with the host picker's form.
     SshHosts.instance.savedServers = () => _workspace.sshServers;
+    // The terminals agents open, in the chat window's panel.
+    if (_main && _terminals != null) {
+      _workspace.agentTerminals = _agentTerminals;
+    }
     unawaited(_loadSshConfigHosts());
     FileDrops.listen(_viewId);
     if (_windows?.started ?? false) {
@@ -663,6 +683,9 @@ class _WorkbenchState extends State<Workbench> implements WindowDelegate {
     }
     if (SshHosts.instance.passwords.ask == _askSshPassword) {
       SshHosts.instance.passwords.ask = null;
+    }
+    if (_workspace.agentTerminals == _agentTerminals) {
+      _workspace.agentTerminals = null;
     }
     if (StashController.current case final stash?
         when stash.showPage == _showStash) {

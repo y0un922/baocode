@@ -20,10 +20,15 @@ if [ -z "$BAOCODE_AGENT_URL" ]; then
   exit 2
 fi
 count=$#
+first=$1
 for argument do
   set -- "$@" --data-urlencode "arg=$argument"
 done
 shift "$count"
+# A hook's: what its agent tells it, on its input.
+if [ "$first" = hook ]; then
+  set -- "$@" --data-urlencode "stdin@-"
+fi
 curl -sS --noproxy '*' --fail-with-body --data-urlencode "argc=$count" "$@" \
   "$BAOCODE_AGENT_URL"
 status=$?
@@ -71,17 +76,27 @@ Future<void> _answer(AgentHost host, HttpRequest request) async {
       reply = const AgentReply.error('Not found');
     } else {
       final body = await utf8.decodeStream(request);
-      final arguments = [
-        for (final field in body.split('&'))
-          if (field.split('=') case ['arg', final value])
-            Uri.decodeQueryComponent(value),
-      ];
-      reply = await host.run(key, arguments);
+      final arguments = <String>[];
+      String? input;
+      for (final field in body.split('&')) {
+        switch (field.split('=')) {
+          case ['arg', final value]:
+            arguments.add(Uri.decodeQueryComponent(value));
+          case ['stdin', final value]:
+            input = Uri.decodeQueryComponent(value);
+        }
+      }
+      reply = await host.run(key, arguments, input: input);
     }
     response
       ..statusCode = reply.ok ? HttpStatus.ok : HttpStatus.badRequest
-      ..headers.contentType = ContentType.text
-      ..write(reply.text.endsWith('\n') ? reply.text : '${reply.text}\n');
+      ..headers.contentType = ContentType.text;
+    // Nothing at all for nothing to say (a hook that lets a tool be).
+    if (reply.text.isNotEmpty) {
+      response.write(
+        reply.text.endsWith('\n') ? reply.text : '${reply.text}\n',
+      );
+    }
     await response.close();
   } on Object {
     // The command was stopped (its agent's turn, say): no one to answer.

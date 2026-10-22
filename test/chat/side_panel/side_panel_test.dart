@@ -632,6 +632,19 @@ void main() {
     expect(panel.tabsOf(second).terminals, isEmpty);
   });
 
+  test('a terminal opened for a conversation not in sight: the panel stays '
+      'shut', () {
+    final panel = AgentSidePanel();
+    addTearDown(panel.dispose);
+    final conversation = Object();
+    panel.openTerminal(conversation, 'ssh-1', show: false);
+    expect(panel.shown, isFalse);
+    expect(panel.tabsOf(conversation).section, SidePanelSection.terminal);
+    expect(panel.tabsOf(conversation).terminal, 'ssh-1');
+    panel.openTerminal(conversation, 'ssh-2');
+    expect(panel.shown, isTrue);
+  });
+
   test('files and changes open on their own pages, each with its tabs', () {
     final panel = AgentSidePanel();
     addTearDown(panel.dispose);

@@ -60,7 +60,6 @@ class DartCoreTransport implements ClaudeCodeTransport {
       ..addAll(ClaudeLaunch.environment)
       ..addAll(ClaudeEnvironment.stateDirectory(base))
       ..addAll(launch.variables);
-    final instructions = launch.instructions;
     return EngineOptions(
       cwd: launch.cwd,
       resume: launch.resume,
@@ -73,9 +72,7 @@ class DartCoreTransport implements ClaudeCodeTransport {
       directories: launch.directories,
       flagSettings: launch.settings,
       sdkServers: launch.sdkServers,
-      appendSystemPrompt: instructions == null || instructions.isEmpty
-          ? ClaudeLaunch.appendedSystemPrompt
-          : '${ClaudeLaunch.appendedSystemPrompt}\n\n$instructions',
+      appendSystemPrompt: launch.systemPrompt,
       promptSuggestions: launch.promptSuggestions,
       environment: environment,
     );

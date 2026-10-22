@@ -310,8 +310,9 @@ class AgentSidePanel extends ChangeNotifier {
   }
 
   /// Shows [id] in its tab: a terminal (its instance), or a background
-  /// command's output (its id).
-  void openTerminal(Object conversation, Object id) {
+  /// command's output (its id). Not [show]n, it is only made the tab the
+  /// terminal page of [conversation] shows.
+  void openTerminal(Object conversation, Object id, {bool show = true}) {
     final tabs = tabsOf(conversation);
     if (!tabs.terminals.contains(id)) {
       tabs.terminals.add(id);
@@ -320,7 +321,12 @@ class AgentSidePanel extends ChangeNotifier {
       }
     }
     tabs.terminal = id;
-    showSection(conversation, SidePanelSection.terminal);
+    if (show) {
+      showSection(conversation, SidePanelSection.terminal);
+    } else {
+      tabs.section = SidePanelSection.terminal;
+      notifyListeners();
+    }
   }
 
   /// Closes the tab of [id]; selects the one after it, else before it,

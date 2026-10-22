@@ -22,10 +22,12 @@ abstract final class AgentSkill {
 
   static const _description =
       'Start other coding agents (Codex, Claude Code) beside you in BaoCode, '
-      'send them work, wait for them and read their answers. Use only when '
-      'the user asks for another agent to do something, or to work with '
-      'other agents in BaoCode. Requires BAOCODE_AGENT_URL '
-      '(an agent BaoCode started).';
+      'send them work, wait for them and read their answers; and work in '
+      'terminals the user watches in BaoCode, on this machine or on a '
+      'server over ssh with nothing installed there. Use only when the user '
+      'asks for another agent to do something, to work with other agents in '
+      'BaoCode, or to work in a terminal or on a server through BaoCode. '
+      'Requires BAOCODE_AGENT_URL (an agent BaoCode started).';
 
   static String get text {
     const command = '"\$${AgentHost.commandVariable}"';
@@ -78,6 +80,29 @@ $command help
 - Check what an agent says it did before relying on it.
 - Close the panes of the agents you are done with (`close <id>`).
 - In Codex's sandbox, the command cannot reach BaoCode: run it with escalated permissions (outside the sandbox).
+
+## Terminals
+
+You can also work in terminals in BaoCode's side panel, which the user watches and can type in. Use one for a server (ssh, nothing installed there), or for what a one-off shell command cannot do: a program that keeps running, one that asks questions, a REPL, an editor.
+
+```bash
+$command terminal open --ssh deploy@my-server
+$command terminal run t1 "systemctl status nginx"
+$command terminal run t1 "tail -n 50 /var/log/nginx/error.log"
+$command terminal type t1 "SELECT count(*) FROM users;"
+$command terminal keys t1 Enter
+$command terminal read t1 --lines 100
+$command terminal wait t1 --match "Listening on" --timeout 120
+$command terminal keys t1 C-c
+$command terminal close t1
+```
+
+- `open [--ssh <host>] [--name <name>]` opens a terminal in your project, or on `<host>` as `ssh` reaches it (`user@host`, a Host of `~/.ssh/config`), and prints its id (`t1`, …) on its first line, then its screen. Where ssh asks for a password or a passphrase, ask the user to type it in the terminal, and `wait` for the prompt.
+- `run <id> <command> [--timeout <seconds>]` runs a command at the prompt, waits until it is done, and prints its output and exit code. Where the shell does not report its commands (no bash on the server), it waits until the terminal is quiet: check the output.
+- A command that looks destructive (`rm -r`, `dd`, `mkfs`, `DROP TABLE`, `git push --force`, …) is only typed at the prompt, not run: the user runs it with Enter, or not. Tell the user why it is needed, then `wait <id>`. `type` and `keys` do not press Enter on one.
+- `type <id> <text>` types without Enter; `keys <id> <key>...` presses keys (`Enter`, `C-c`, `C-d`, `Esc`, `Tab`, `Up`, `q`, …): for programs that read keys, and to stop one (`C-c`). Each prints the screen after.
+- `read <id> [--lines <n>]` prints the screen, or its last `<n>` lines with the scrollback. `wait <id>` waits until the running command is done; `--match <regex>` until it shows, `--idle <seconds>` until nothing is printed for that long.
+- `list` shows your terminals; `close <id>` closes one, ending what runs in it. Close those you are done with.
 ''';
   }
 }
