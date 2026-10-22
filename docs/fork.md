@@ -16,9 +16,13 @@
 
 ## 分享给别人
 
-本项目为 GPL-3.0。把构建好的应用发给别人时：
+本项目为 GPL-3.0。发布一个版本：提交并推送后，打 `v<版本>-fork.<序号>` 的 tag 并推送（如 `git tag v1.4.0-fork.3 && git push origin v1.4.0-fork.3`）。`.github/workflows/fork-release.yml` 会在 GitHub Actions 上构建 Apple 芯片与 Intel 两个 dmg，启动检查后发布到本仓库的 Releases，附 `LICENSE`、源码归档与安装说明，别人从 Releases 页下载即可。上游的 `release.yml` 不会被这类 tag 触发。
 
-1. 应用必须由已提交并推送的代码构建，并为该提交打 tag（如 `v1.4.0-fork.2`），把 tag 的链接一起发过去，作为对应源码。
+远程服务端版本写在该 workflow 的 `REMOTE_RELEASE` 中，须与 `packages/bao_remote` 对应的官方发布一致（见[上游更新审查](upstream-review.md)）。
+
+自己打包后直接发给别人时：
+
+1. 应用必须由已提交并推送的代码构建，并为该提交打 tag，把 tag 的链接一起发过去，作为对应源码。
 2. 把仓库根目录的 `LICENSE` 和应用放在同一个压缩包里。
 3. 应用是 ad hoc 签名，对方首次打开前需运行 `xattr -dr com.apple.quarantine /Applications/BaoCode.app`。
 4. 告诉对方：包标识与官方相同（`dev.baocode.desktop`），装官方版会覆盖它；有问题找你，不要报给官方。

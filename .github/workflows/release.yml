@@ -18,7 +18,8 @@ name: Release
 
 on:
   push:
-    tags: ['v*', 'test-*']
+    # Not this fork's v*-fork.* tags: fork-release.yml builds those.
+    tags: ['v*', 'test-*', '!v*-fork.*']
   workflow_dispatch:
 
 permissions:

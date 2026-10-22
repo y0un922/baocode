@@ -1,0 +1,106 @@
+# Builds this fork for macOS and publishes it as a GitHub release of this
+# repository, for whoever it is shared with (docs/fork.md, 分享给别人).
+# Not upstream's release.yml: nothing goes to dl.baocode.dev, and the app is
+# signed ad hoc (no Developer ID here).
+#
+#   git tag v1.4.0-fork.3 && git push origin v1.4.0-fork.3
+#                                   build, and release it under the tag
+#   Actions → Fork release → Run workflow
+#                                   build only, the installers as artifacts
+name: Fork release
+
+on:
+  push:
+    tags: ['v*-fork.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # the GitHub release
+
+concurrency:
+  group: fork-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.47.5
+  # The remote server published that packages/bao_remote is the source of:
+  # upstream's v1.5.0 (docs/upstream-review.md). Change it with that.
+  REMOTE_RELEASE: 1.5.0.15-4f805e192790
+
+jobs:
+  macos:
+    name: Build for macOS
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install create-dmg
+        run: brew install create-dmg
+      - name: Build and sign ad hoc
+        run: dart run tool/build_macos.dart --remote-release "$REMOTE_RELEASE"
+      - name: Launch each app
+        run: |
+          # As upstream's release.yml: a valid signature is not enough, dyld
+          # can still refuse the app's frameworks. Intel's under Rosetta.
+          softwareupdate --install-rosetta --agree-to-license > /dev/null 2>&1 || true
+          for arch in arm64 x64; do
+            dir="$RUNNER_TEMP/launch-$arch"
+            mkdir "$dir"
+            ditto -x -k build/installers/BaoCode-*-mac-$arch.zip "$dir"
+            BAOCODE_DATA_DIR="$dir-data" \
+              "$dir/BaoCode.app/Contents/MacOS/BaoCode" > "$dir.log" 2>&1 &
+            pid=$!
+            sleep 15
+            if ! kill -0 $pid 2>/dev/null; then
+              cat "$dir.log"
+              echo "::error::BaoCode ($arch) exited within 15 seconds of launch"
+              exit 1
+            fi
+            echo "BaoCode ($arch) is running after 15 seconds"
+            kill $pid
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          if-no-files-found: error
+          path: build/installers/BaoCode-*.dmg
+      - name: Release it under the tag
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          marketing=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
+          marketing=${marketing%%+*}
+          cp LICENSE build/installers/LICENSE
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
+          **Unofficial fork** of [baocode-dev/baocode](https://github.com/baocode-dev/baocode), not made or supported by its developers: report problems here, not upstream. Changes: [docs/fork.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/docs/fork.md).
+
+          **非官方修改版**，与官方开发者无关；有问题请在本仓库反馈，不要报给官方。
+
+          ## 下载 / Download
+
+          - Apple 芯片（M1 及以后）：\`BaoCode-$marketing-arm64.dmg\`
+          - Intel：\`BaoCode-$marketing-x64.dmg\`
+
+          打开 dmg，把 BaoCode 拖进“应用程序”。它没有经过苹果公证（ad hoc 签名），首次打开前在“终端”里运行：
+
+          \`\`\`
+          xattr -dr com.apple.quarantine /Applications/BaoCode.app
+          \`\`\`
+
+          它和官方版是同一个应用标识（\`dev.baocode.desktop\`）：两者不能同时安装，装官方版会覆盖它。它不会自动更新，也不向官方发送使用统计。
+
+          ## License / 许可证
+
+          GPL-3.0 (\`LICENSE\` below). The corresponding source is this tag, \`$GITHUB_REF_NAME\` (${GITHUB_SHA::7}): the Source code archives below.
+          EOF
+          gh release delete "$GITHUB_REF_NAME" --yes 2>/dev/null || true
+          gh release create "$GITHUB_REF_NAME" --title "BaoCode $GITHUB_REF_NAME (unofficial fork)" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            build/installers/BaoCode-$marketing-arm64.dmg \
+            build/installers/BaoCode-$marketing-x64.dmg \
+            build/installers/LICENSE
