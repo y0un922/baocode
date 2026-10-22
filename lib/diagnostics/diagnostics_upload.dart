@@ -83,13 +83,15 @@ class DiagnosticsUploader {
        _client = client ?? HttpClient.new;
 
   /// The app's: the data folder's `logs`, [url] the one
-  /// [diagnosticsUrlVariable] names, if any.
-  factory DiagnosticsUploader.platform() {
+  /// [diagnosticsUrlVariable] names. None without it: this fork's logs are
+  /// not upstream's developers' to read.
+  static DiagnosticsUploader? platform() {
     final environment = Platform.environment;
     final override = environment[diagnosticsUrlVariable]?.trim() ?? '';
+    if (override.isEmpty) return null;
     return DiagnosticsUploader(
       folder: DataDirectory.current.logsDir,
-      url: override.isEmpty ? null : Uri.tryParse(override),
+      url: Uri.tryParse(override),
       home: Platform.isWindows
           ? environment['USERPROFILE']
           : environment['HOME'],

@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:ffi' show Abi;
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-
 import '../update/version.dart';
 import 'telemetry_service.dart';
 
@@ -11,15 +9,14 @@ import 'telemetry_service.dart';
 /// in a debug build.
 const telemetryUrlVariable = 'BAOCODE_TELEMETRY_URL';
 
-/// What the app reports with where it runs; null where it reports nothing:
-/// a debug build (unless [telemetryUrlVariable] is set).
+/// What the app reports with where it runs; null where it reports nothing.
+/// This fork is not upstream's to count: it reports only where
+/// [telemetryUrlVariable] names a server.
 PlatformTelemetry? platformTelemetry() {
   final environment = Platform.environment;
   final override = environment[telemetryUrlVariable]?.trim() ?? '';
-  if (!kReleaseMode && override.isEmpty) return null;
-  final url = Uri.tryParse(
-    override.isEmpty ? TelemetryService.defaultUrl : override,
-  );
+  if (override.isEmpty) return null;
+  final url = Uri.tryParse(override);
   if (url == null) return null;
   final os = Platform.operatingSystem;
   final arch = abiArch(Abi.current());
