@@ -14,6 +14,7 @@ class UserMessageItem extends ChatItem {
     this.images = const [],
     this.worked,
     this.usage,
+    this.endedAt,
   });
 
   final String text;
@@ -32,14 +33,22 @@ class UserMessageItem extends ChatItem {
   /// What its turn spent, kept with [worked], when the kernel said.
   final TurnUsage? usage;
 
-  UserMessageItem copyWith({Duration? worked, TurnUsage? usage}) =>
-      UserMessageItem(
-        text: text,
-        queued: queued,
-        images: images,
-        worked: worked ?? this.worked,
-        usage: usage ?? this.usage,
-      );
+  /// When its turn ended, kept with [worked]: the model's prompt cache
+  /// lasts a while from its last request.
+  final DateTime? endedAt;
+
+  UserMessageItem copyWith({
+    Duration? worked,
+    TurnUsage? usage,
+    DateTime? endedAt,
+  }) => UserMessageItem(
+    text: text,
+    queued: queued,
+    images: images,
+    worked: worked ?? this.worked,
+    usage: usage ?? this.usage,
+    endedAt: endedAt ?? this.endedAt,
+  );
 }
 
 /// What a turn spent, as its kernel reported at its end.

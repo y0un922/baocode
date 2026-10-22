@@ -2545,6 +2545,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String turnEnded(String time) {
+    return 'ended $time';
+  }
+
+  @override
+  String turnEndedHint(String time) {
+    return 'This turn ended at $time';
+  }
+
+  @override
   String turnTokens(String tokens) {
     return '$tokens tokens';
   }

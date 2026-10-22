@@ -947,6 +947,13 @@ void main() {
       expect(worked('p1'), const Duration(seconds: 45));
       expect(worked('p2'), isNull, reason: 'stopped');
       expect(worked('p3'), const Duration(seconds: 3));
+      // Ended as their last message was written, for the prompt cache.
+      DateTime? ended(String id) => (transcript.itemAt(
+        transcript.indexOf(id)!,
+      ) as UserMessageItem).endedAt;
+      expect(ended('p1'), DateTime.utc(2026, 10, 1, 10, 0, 45).toLocal());
+      expect(ended('p2'), isNull);
+      expect(ended('p3'), DateTime.utc(2026, 10, 1, 10, 0, 58).toLocal());
     });
 
     test('translating a message twice changes nothing', () {

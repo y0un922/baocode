@@ -1484,6 +1484,24 @@
       }
     }
   },
+  "turnEnded": "ended {time}",
+  "@turnEnded": {
+    "description": "When a finished turn ended, under it, e.g. \"ended 14:32\" (\"10-20 14:32\" another day): for the user to tell whether the model's prompt cache, which lasts a while from the last request, is still there.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "turnEndedHint": "This turn ended at {time}",
+  "@turnEndedHint": {
+    "description": "The hover of turnEnded, with seconds, e.g. \"This turn ended at 14:32:05\".",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "turnTokens": "{tokens} tokens",
   "@turnTokens": {
     "description": "The tokens a turn read and wrote, all its requests together, e.g. \"12.3k tokens\".",

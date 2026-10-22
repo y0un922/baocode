@@ -382,15 +382,20 @@ class ClaudeTranslator {
     _replayedStopped = false;
     if (turn == null || stopped) return;
     // As its footer showed it when it ended, where that was kept.
+    // Ended as its last message was written.
+    final endedAt = until?.toLocal();
     if (keptTurns[turn.id] case (:final worked, :final usage)) {
-      _put(turn.id, turn.item.copyWith(worked: worked, usage: usage));
+      _put(
+        turn.id,
+        turn.item.copyWith(worked: worked, usage: usage, endedAt: endedAt),
+      );
       return;
     }
     final at = turn.at;
     if (until == null || at == null) return;
     final worked = until.difference(at);
     if (worked > Duration.zero) {
-      _put(turn.id, turn.item.copyWith(worked: worked));
+      _put(turn.id, turn.item.copyWith(worked: worked, endedAt: endedAt));
     }
   }
 

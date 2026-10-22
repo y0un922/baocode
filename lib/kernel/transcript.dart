@@ -288,7 +288,11 @@ class Transcript {
     final index = _indexOf[id];
     if (index == null) return;
     if (_items[index] case final UserMessageItem message) {
-      _items[index] = message.copyWith(worked: worked, usage: usage);
+      _items[index] = message.copyWith(
+        worked: worked,
+        usage: usage,
+        endedAt: DateTime.now(),
+      );
     }
   }
 

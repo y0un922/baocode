@@ -26,6 +26,7 @@ abstract final class ChatCodec {
             },
         ],
       'worked': ?item.worked?.inMilliseconds,
+      'endedAt': ?item.endedAt?.millisecondsSinceEpoch,
     },
     AssistantTextItem() => {'t': 'text', 'text': item.text},
     ThinkingItem() => {
@@ -140,6 +141,7 @@ abstract final class ChatCodec {
               ),
         ],
         worked: duration('worked'),
+        endedAt: time('endedAt'),
       ),
       'text' => AssistantTextItem(text('text')),
       'thinking' => ThinkingItem(

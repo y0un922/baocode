@@ -218,6 +218,7 @@ class _ChatHistoryViewState extends State<ChatHistoryView>
       answer: words.isEmpty ? null : words.join('\n\n'),
       worked: message.worked,
       usage: message.usage,
+      endedAt: message.endedAt,
     );
   }
 

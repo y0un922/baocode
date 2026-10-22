@@ -1,6 +1,8 @@
 import 'package:baocode/chat/chat_models.dart';
 import 'package:baocode/chat/widgets/rolling_text.dart';
 import 'package:baocode/chat/widgets/turn_footer.dart';
+import 'package:baocode/kernel/kernel_event.dart';
+import 'package:baocode/kernel/transcript.dart';
 import 'package:baocode/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,6 +126,55 @@ void main() {
       ),
     );
     expect(find.text('150.00 tok/s'), findsOneWidget);
+  });
+
+  test('when a turn ended: the time today, the day before', () {
+    final now = DateTime(2026, 10, 21, 18);
+    expect(
+      TurnFooter.formatEnded(DateTime(2026, 10, 21, 9, 5, 7), now: now),
+      '09:05',
+    );
+    expect(
+      TurnFooter.formatEnded(
+        DateTime(2026, 10, 21, 9, 5, 7),
+        now: now,
+        seconds: true,
+      ),
+      '09:05:07',
+    );
+    expect(
+      TurnFooter.formatEnded(DateTime(2026, 10, 20, 23, 59), now: now),
+      '10-20 23:59',
+    );
+    expect(
+      TurnFooter.formatEnded(DateTime(2025, 12, 31, 8, 0), now: now),
+      '2025-12-31 08:00',
+    );
+  });
+
+  test('a turn that ends is kept with when it ended', () {
+    final transcript = Transcript()
+      ..apply(const TurnStarted(1, 'u1'))
+      ..apply(const ItemUpserted(2, 'u1', UserMessageItem(text: 'hi')));
+    final before = DateTime.now();
+    transcript.apply(const TurnEnded(3, 'u1', worked: Duration(seconds: 3)));
+    final message = transcript.itemAt(0) as UserMessageItem;
+    expect(message.worked, const Duration(seconds: 3));
+    expect(message.endedAt!.isBefore(before), isFalse);
+  });
+
+  testWidgets('a finished turn says when it ended, last', (tester) async {
+    final ended = DateTime.now();
+    await _pump(
+      tester,
+      TurnFooter(worked: const Duration(seconds: 12), endedAt: ended),
+    );
+    final text = 'ended ${TurnFooter.formatEnded(ended)}';
+    expect(find.text(text), findsOneWidget);
+    expect(
+      tester.getRect(find.text('12s')).right,
+      lessThan(tester.getRect(find.text(text)).left),
+    );
   });
 
   testWidgets('a finished turn\'s time comes first, its tokens last', (

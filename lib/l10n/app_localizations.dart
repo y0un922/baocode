@@ -4466,6 +4466,18 @@ abstract class AppLocalizations {
   /// **'{speed} tok/s'**
   String turnSpeed(String speed);
 
+  /// When a finished turn ended, under it, e.g. "ended 14:32" ("10-20 14:32" another day): for the user to tell whether the model's prompt cache, which lasts a while from the last request, is still there.
+  ///
+  /// In en, this message translates to:
+  /// **'ended {time}'**
+  String turnEnded(String time);
+
+  /// The hover of turnEnded, with seconds, e.g. "This turn ended at 14:32:05".
+  ///
+  /// In en, this message translates to:
+  /// **'This turn ended at {time}'**
+  String turnEndedHint(String time);
+
   /// The tokens a turn read and wrote, all its requests together, e.g. "12.3k tokens".
   ///
   /// In en, this message translates to:

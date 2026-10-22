@@ -2462,6 +2462,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String turnEnded(String time) {
+    return '$time 完成';
+  }
+
+  @override
+  String turnEndedHint(String time) {
+    return '本轮于 $time 结束';
+  }
+
+  @override
   String turnTokens(String tokens) {
     return '$tokens tokens';
   }

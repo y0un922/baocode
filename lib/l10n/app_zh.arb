@@ -728,6 +728,8 @@
   "turnCopy": "复制回复",
   "turnCopied": "已复制",
   "turnSpeed": "{speed} tok/s",
+  "turnEnded": "{time} 完成",
+  "turnEndedHint": "本轮于 {time} 结束",
   "turnTokens": "{tokens} tokens",
   "turnTokensHint": "本轮：输入 {input}（含缓存），输出 {output}",
   "turnSpeedHint": "实际输出 token ÷ 模型请求总耗时（含等待和思考，不含本地工具耗时）",

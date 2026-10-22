@@ -38,8 +38,9 @@ abstract final class LiveTurnStatsSetting {
 }
 
 /// Under a finished turn: a button to copy its answer, then, faint, how
-/// long the turn took, how fast the model wrote, what it cost and the
-/// tokens it used, as far as known. Out of the history's selection.
+/// long the turn took, how fast the model wrote, what it cost, the tokens
+/// it used and when it ended (for the prompt cache, which lasts a while
+/// from the last request), as far as known. Out of the history's selection.
 ///
 /// Under a turn under way ([live]), the last of all: how long the turn has
 /// taken ([since] its start), how fast the model writes (as last sampled)
@@ -53,6 +54,7 @@ class TurnFooter extends StatelessWidget {
     this.answer,
     this.worked,
     this.usage,
+    this.endedAt,
     this.live,
     this.since,
   });
@@ -61,6 +63,7 @@ class TurnFooter extends StatelessWidget {
   final String? answer;
   final Duration? worked;
   final TurnUsage? usage;
+  final DateTime? endedAt;
 
   /// What the turn under way has written so far, and how fast.
   final TurnOutput? live;
@@ -77,6 +80,29 @@ class TurnFooter extends StatelessWidget {
       digits++;
     }
     return '\$${usd.toStringAsFixed(digits)}';
+  }
+
+  /// When a turn ended, as of [now]: `14:32` today, `10-20 14:32` another
+  /// day this year, `2025-10-20 14:32` before; [seconds] adds them
+  /// (`14:32:05`).
+  static String formatEnded(
+    DateTime at, {
+    DateTime? now,
+    bool seconds = false,
+  }) {
+    final local = at.toLocal();
+    final today = (now ?? DateTime.now()).toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final time =
+        '${two(local.hour)}:${two(local.minute)}'
+        '${seconds ? ':${two(local.second)}' : ''}';
+    if (local.year != today.year) {
+      return '${local.year}-${two(local.month)}-${two(local.day)} $time';
+    }
+    if (local.month != today.month || local.day != today.day) {
+      return '${two(local.month)}-${two(local.day)} $time';
+    }
+    return time;
   }
 
   @override
@@ -139,6 +165,11 @@ class TurnFooter extends StatelessWidget {
             AgentStep.formatTokens(usage?.inputTokens ?? 0),
             AgentStep.formatTokens(usage?.outputTokens ?? 0),
           ),
+        ),
+      if (endedAt case final endedAt?)
+        _Stat(
+          text: l10n.turnEnded(formatEnded(endedAt)),
+          hint: l10n.turnEndedHint(formatEnded(endedAt, seconds: true)),
         ),
     ];
   }
