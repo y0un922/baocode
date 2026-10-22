@@ -1,12 +1,14 @@
 # 自用 fork
 
-本仓库是 [`y0un922/baocode`](https://github.com/y0un922/baocode)，上游为 [`baocode-dev/baocode`](https://github.com/baocode-dev/baocode)。
+本仓库是 [`y0un922/baogong`](https://github.com/y0un922/baogong)（原名 `y0un922/baocode`），上游为 [`baocode-dev/baocode`](https://github.com/baocode-dev/baocode)。
 
 ## 名称与图标
 
 本 fork 的应用名为 **Baogong**，中文系统下显示为**包工头**；图标是戴安全帽的像素包子（`tool/fork_icon.py` 生成全部尺寸、`assets/branding/logo.svg` 与菜单栏图标的格子）。
 
 - 应用文件夹为 `Baogong.app`，包标识为 `io.github.y0un922.baogong`（Finder 扩展为其 `.FinderExtension`），可与官方 BaoCode 同时安装。
+- Windows：安装包 `Baogong-<版本>-setup.exe`，有自己的 AppId（`tool/baocode.iss`，与 `lib/update/installer_io.dart` 的 `windowsUninstallKey` 一致），装到 `Baogong` 文件夹；窗口标题、开始菜单和右键菜单的名字为 Baogong（中文系统右键菜单为“用包工头打开”）。`baocode.exe`、注册表键名、单实例互斥量和 `baocode:` 链接未改，因此与官方版共用右键菜单和链接的注册，后装的为准。
+- Linux：包名 `baogong`，装在 `/opt/baogong`，命令 `baogong`，桌面项 `baogong.desktop`（中文名包工头）；可执行文件仍为 `baocode`。
 - 显示名：`macos/Runner/Info.plist` 的 `CFBundleName`/`CFBundleDisplayName`，中文名在 `macos/packaging/zh-Hans.lproj/InfoPlist.strings`，由 `tool/build_macos.dart` 在签名前放入应用；包内可执行文件仍叫 `BaoCode`。
 - 界面文字中指本应用的 “BaoCode” 已改为包工头 / Baogong；指上游的保留原名：Chrome 商店的浏览器扩展（及其“BaoCode”标签页分组和工具栏按钮）、手机 App 与中转、官网更新与诊断、推荐站点列表、GitHub 授权应用。
 - 不改内部名称，以便继续合入上游：数据目录 `~/Library/Application Support/baocode`、`BAOCODE_*` 环境变量、`baocode-agent`、浏览器扩展的原生连接名、`baocode://` 链接、钥匙串服务名、`~/BaoCode/Stash`。因此与官方版共用同一份数据，两者不要同时打开。
@@ -25,7 +27,7 @@
 
 ## 分享给别人
 
-本项目为 GPL-3.0。发布一个版本：提交并推送后，打 `v<版本>-fork.<序号>` 的 tag 并推送（如 `git tag v1.4.0-fork.3 && git push origin v1.4.0-fork.3`）。`.github/workflows/fork-release.yml` 会在 GitHub Actions 上构建 Apple 芯片与 Intel 两个 dmg，启动检查后发布到本仓库的 Releases，附 `LICENSE`、源码归档与安装说明，别人从 Releases 页下载即可。上游的 `release.yml` 不会被这类 tag 触发。
+本项目为 GPL-3.0。发布一个版本：提交并推送后，打 `v<版本>-fork.<序号>` 的 tag 并推送（如 `git tag v1.4.0-fork.4 && git push origin v1.4.0-fork.4`）。`.github/workflows/fork-release.yml` 会在 GitHub Actions 上构建 macOS（Apple 芯片与 Intel 两个 dmg）、Windows（x64 安装包）和 Linux（x64 与 arm64 的 deb 和 tar.gz），各自安装或解压后启动检查，再一起发布到本仓库的 Releases，附 `LICENSE`、源码归档与安装说明，别人从 Releases 页下载即可。上游的 `release.yml` 不会被这类 tag 触发。
 
 远程服务端版本写在该 workflow 的 `REMOTE_RELEASE` 中，须与 `packages/bao_remote` 对应的官方发布一致（见[上游更新审查](upstream-review.md)）。
 
@@ -33,7 +35,7 @@
 
 1. 应用必须由已提交并推送的代码构建，并为该提交打 tag，把 tag 的链接一起发过去，作为对应源码。
 2. 把仓库根目录的 `LICENSE` 和应用放在同一个压缩包里。
-3. 应用是 ad hoc 签名，对方首次打开前需运行 `xattr -dr com.apple.quarantine /Applications/Baogong.app`。
+3. macOS 应用是 ad hoc 签名，对方首次打开前需运行 `xattr -dr com.apple.quarantine /Applications/Baogong.app`；Windows 安装包没有签名，SmartScreen 拦下时点“更多信息 → 仍要运行”。
 4. 告诉对方：可与官方 BaoCode 同时安装，但两者共用数据，不要同时打开；有问题找你，不要报给官方。
 
 ## 审查上游后合并

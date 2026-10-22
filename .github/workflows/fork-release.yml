@@ -1,7 +1,8 @@
-# Builds this fork, Baogong (包工头), for macOS and publishes it as a GitHub
-# release of this repository, for whoever it is shared with (docs/fork.md, 分享给别人).
-# Not upstream's release.yml: nothing goes to dl.baocode.dev, and the app is
-# signed ad hoc (no Developer ID here).
+# Builds this fork, Baogong (包工头), for macOS, Windows and Linux and
+# publishes it as a GitHub release of this repository, for whoever it is
+# shared with (docs/fork.md, 分享给别人). Not upstream's release.yml: nothing
+# goes to dl.baocode.dev, the macOS app is signed ad hoc (no Developer ID
+# here) and the Windows installer not at all.
 #
 #   git tag v1.4.0-fork.3 && git push origin v1.4.0-fork.3
 #                                   build, and release it under the tag
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # the GitHub release
+  contents: read
 
 concurrency:
   group: fork-release-${{ github.ref }}
@@ -68,29 +69,142 @@ jobs:
           name: macos
           if-no-files-found: error
           path: build/installers/Baogong-*.dmg
-      - name: Release it under the tag
-        if: github.ref_type == 'tag'
+
+  windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build
+        run: dart run tool/build_windows.dart --remote-release $env:REMOTE_RELEASE
+      - name: Install it and launch it
+        run: |
+          $setup = Get-ChildItem build\installers\Baogong-*-setup.exe | Select-Object -First 1
+          Start-Process $setup.FullName -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER'
+          $exe = "$env:LOCALAPPDATA\Programs\Baogong\baocode.exe"
+          if (-not (Test-Path $exe)) { Write-Error "Setup put no $exe"; exit 1 }
+          $env:BAOCODE_DATA_DIR = "$env:RUNNER_TEMP\launch-data"
+          $app = Start-Process $exe -PassThru
+          Start-Sleep -Seconds 15
+          if ($app.HasExited) { Write-Error "Baogong exited within 15 seconds of launch ($($app.ExitCode))"; exit 1 }
+          Write-Output 'Baogong is running after 15 seconds'
+          Stop-Process -Id $app.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          if-no-files-found: error
+          path: build/installers/Baogong-*-setup.exe
+
+  linux:
+    name: Build for Linux (${{ matrix.arch }})
+    # As upstream's: the oldest Ubuntu built on, whose glibc and GTK the
+    # package runs on from there up.
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        if: matrix.arch == 'x64'
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      # Flutter publishes no SDK archive for Linux on arm64, so there it is
+      # cloned at the release's tag; the engine it downloads has arm64 builds.
+      - name: Clone Flutter
+        if: matrix.arch == 'arm64'
+        run: |
+          git clone --depth 1 --branch "$FLUTTER_VERSION" \
+            https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" --version
+      - name: Install GTK's build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev \
+            liblzma-dev libstdc++-12-dev xvfb dbus-x11
+      - name: Take the remote server published
+        run: dart run tool/fetch_remote_server.dart "$REMOTE_RELEASE" --out build/remote
+      - name: Build
+        run: flutter build linux --release
+      - name: Package the .deb and the tarball
+        run: |
+          sh tool/package_linux_deb.sh
+          dpkg-deb --info build/installers/Baogong-*.deb
+      - name: Install the package and launch it
+        run: |
+          sudo apt-get install -y ./build/installers/Baogong-*.deb
+          log="$RUNNER_TEMP/launch.log"
+          BAOCODE_DATA_DIR="$RUNNER_TEMP/launch-data" \
+            dbus-run-session -- xvfb-run -a /opt/baogong/baocode > "$log" 2>&1 &
+          sleep 15
+          if ! pgrep -x baocode > /dev/null; then
+            cat "$log"
+            echo "::error::Baogong exited within 15 seconds of launch"
+            exit 1
+          fi
+          echo "Baogong is running after 15 seconds"
+          pkill -x baocode || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            build/installers/Baogong-*.deb
+            build/installers/Baogong-*.tar.gz
+
+  release:
+    name: Release it under the tag
+    needs: [macos, windows, linux]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the GitHub release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           marketing=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
           marketing=${marketing%%+*}
-          cp LICENSE build/installers/LICENSE
+          cp LICENSE dist/LICENSE
+          ls -l dist
           cat > "$RUNNER_TEMP/notes.md" <<EOF
-          **Baogong (包工头)**, an **unofficial fork** of [baocode-dev/baocode](https://github.com/baocode-dev/baocode), not made or supported by its developers: report problems here, not upstream. Changes: [docs/fork.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/docs/fork.md).
+          **Baogong (包工头)**, an **unofficial fork** of [baocode-dev/baocode](https://github.com/baocode-dev/baocode), not made or supported by its developers: report problems here, not upstream. What it adds: [README](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/README.md).
 
           **包工头**是 BaoCode 的**非官方修改版**，与官方开发者无关；有问题请在本仓库反馈，不要报给官方。
 
           ## 下载 / Download
 
-          - Apple 芯片（M1 及以后）：\`Baogong-$marketing-arm64.dmg\`
-          - Intel：\`Baogong-$marketing-x64.dmg\`
+          | 系统 | 文件 |
+          | --- | --- |
+          | macOS，Apple 芯片（M1 及以后） | \`Baogong-$marketing-arm64.dmg\` |
+          | macOS，Intel | \`Baogong-$marketing-x64.dmg\` |
+          | Windows 10 / 11（x64） | \`Baogong-$marketing-setup.exe\` |
+          | Linux x64（Ubuntu 22.04 及以后） | \`Baogong-$marketing-linux-amd64.deb\`，或免安装的 \`.tar.gz\` |
+          | Linux arm64 | \`Baogong-$marketing-linux-arm64.deb\`，或免安装的 \`.tar.gz\` |
 
-          打开 dmg，把包工头拖进“应用程序”。它没有经过苹果公证（ad hoc 签名），首次打开前在“终端”里运行：
-
-          \`\`\`
-          xattr -dr com.apple.quarantine /Applications/Baogong.app
-          \`\`\`
+          - **macOS**：打开 dmg，把包工头拖进“应用程序”。它没有经过苹果公证（ad hoc 签名），首次打开前在“终端”里运行 \`xattr -dr com.apple.quarantine /Applications/Baogong.app\`。
+          - **Windows**：安装包没有签名，SmartScreen 拦下时点“更多信息 → 仍要运行”。
+          - **Linux**：\`sudo apt install ./Baogong-$marketing-linux-amd64.deb\`，之后从应用菜单或 \`baogong\` 命令打开。
 
           它可以和官方 BaoCode 同时安装，但两者共用同一份数据（会话、设置），不要同时打开。它不会自动更新，也不向官方发送使用统计。
 
@@ -101,6 +215,11 @@ jobs:
           gh release delete "$GITHUB_REF_NAME" --yes 2>/dev/null || true
           gh release create "$GITHUB_REF_NAME" --title "Baogong (包工头) $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/notes.md" \
-            build/installers/Baogong-$marketing-arm64.dmg \
-            build/installers/Baogong-$marketing-x64.dmg \
-            build/installers/LICENSE
+            dist/Baogong-$marketing-arm64.dmg \
+            dist/Baogong-$marketing-x64.dmg \
+            dist/Baogong-$marketing-setup.exe \
+            dist/Baogong-$marketing-linux-amd64.deb \
+            dist/Baogong-$marketing-linux-arm64.deb \
+            dist/Baogong-$marketing-linux-amd64.tar.gz \
+            dist/Baogong-$marketing-linux-arm64.tar.gz \
+            dist/LICENSE

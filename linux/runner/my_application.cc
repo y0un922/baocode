@@ -349,7 +349,7 @@ static void my_application_activate(GApplication* application) {
   // The app paints its own header on Windows only. Everywhere else the
   // system draws the caption, so this is a normal title bar (no GTK
   // header bar stacked on top of the Flutter view).
-  gtk_window_set_title(window, "BaoCode");
+  gtk_window_set_title(window, "Baogong");
   gtk_window_set_default_size(window, kDefaultWidth, kDefaultHeight);
   GdkGeometry geometry = {};
   geometry.min_width = kMinWidth;

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Packages flutter build linux --release into a .deb and a portable tarball,
-# for this machine's processor (x64 or arm64). Run on Ubuntu after the
+# for this machine's processor (x64 or arm64), as Baogong (包工头), this fork:
+# package baogong in /opt/baogong, beside upstream's baocode. Run on Ubuntu after the
 # bundle exists at build/linux/<arch>/release/bundle. The remote server's
 # VERSION and servers.json, when built into build/remote/, go beside the
 # executable (lib/remote/remote_binaries.dart); the app downloads the
@@ -31,28 +32,29 @@ fi
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 
-mkdir -p "$stage/opt/baocode" \
+mkdir -p "$stage/opt/baogong" \
   "$stage/usr/bin" \
   "$stage/usr/share/applications" \
   "$stage/usr/share/icons/hicolor/128x128/apps" \
   "$stage/DEBIAN"
 
-cp -a "$bundle/." "$stage/opt/baocode/"
+cp -a "$bundle/." "$stage/opt/baogong/"
 cp "$root/assets/branding/app_icon.png" \
-  "$stage/usr/share/icons/hicolor/128x128/apps/baocode.png"
+  "$stage/usr/share/icons/hicolor/128x128/apps/baogong.png"
 
-cat > "$stage/usr/bin/baocode" << 'EOF'
+cat > "$stage/usr/bin/baogong" << 'EOF'
 #!/bin/sh
-exec /opt/baocode/baocode "$@"
+exec /opt/baogong/baocode "$@"
 EOF
-chmod 755 "$stage/usr/bin/baocode"
+chmod 755 "$stage/usr/bin/baogong"
 
-cat > "$stage/usr/share/applications/baocode.desktop" << 'EOF'
+cat > "$stage/usr/share/applications/baogong.desktop" << 'EOF'
 [Desktop Entry]
-Name=BaoCode
+Name=Baogong
+Name[zh_CN]=包工头
 Comment=Desktop app for Claude Code
-Exec=baocode %U
-Icon=baocode
+Exec=baogong %U
+Icon=baogong
 Terminal=false
 Type=Application
 Categories=Development;
@@ -62,22 +64,22 @@ EOF
 # libgtk-3-0 is what the engine links. libblkid1 and liblzma5 are the
 # extra libraries Flutter's Linux bundle expects on the system.
 cat > "$stage/DEBIAN/control" << EOF
-Package: baocode
+Package: baogong
 Version: ${marketing}
 Section: devel
 Priority: optional
 Architecture: ${package_arch}
 Depends: libgtk-3-0, libblkid1, liblzma5
-Maintainer: BaoCode <noreply@baocode.dev>
-Homepage: https://baocode.dev
-Description: BaoCode desktop for Linux
+Maintainer: y0un922 <y0un92@linux.do>
+Homepage: https://github.com/y0un922/baogong
+Description: Baogong (包工头), an unofficial fork of BaoCode
  A desktop UI for Claude Code, with a fast IDE built in.
 EOF
 
 out="$root/build/installers"
 mkdir -p "$out"
 dpkg-deb --build --root-owner-group "$stage" \
-  "$out/BaoCode-${marketing}-linux-${package_arch}.deb"
-tar -C "$bundle" -czf "$out/BaoCode-${marketing}-linux-${package_arch}.tar.gz" .
-echo "Wrote $out/BaoCode-${marketing}-linux-${package_arch}.deb"
-echo "Wrote $out/BaoCode-${marketing}-linux-${package_arch}.tar.gz"
+  "$out/Baogong-${marketing}-linux-${package_arch}.deb"
+tar -C "$bundle" -czf "$out/Baogong-${marketing}-linux-${package_arch}.tar.gz" .
+echo "Wrote $out/Baogong-${marketing}-linux-${package_arch}.deb"
+echo "Wrote $out/Baogong-${marketing}-linux-${package_arch}.tar.gz"

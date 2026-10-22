@@ -197,7 +197,7 @@ Future<void> main(List<String> arguments) async {
 
   _step('Done');
   final installer = File(
-    '${installers.path}\\BaoCode-${version.marketing}-setup.exe',
+    '${installers.path}\\Baogong-${version.marketing}-setup.exe',
   );
   for (final file in [installer, ...servers]) {
     if (!file.existsSync()) continue;

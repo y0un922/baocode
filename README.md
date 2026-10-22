@@ -1,10 +1,87 @@
-# Baogong（包工头）
+# 包工头 Baogong
 
 <img src="assets/branding/app_icon.png" alt="Baogong's icon: the BaoCode bun in a hard hat" width="96" height="96"/>
 
-> **Unofficial fork.** Baogong (包工头) is [y0un922/baocode](https://github.com/y0un922/baocode), a personal modification of [BaoCode](https://github.com/baocode-dev/baocode) 1.4.0 with selected changes of 1.5.0, changed since October 2026; not made or supported by the BaoCode developers. Its changes are in [docs/fork.md](docs/fork.md) and its git history. Downloads are in [Releases](https://github.com/y0un922/baocode/releases). Licensed under the GPL-3.0, as upstream. What follows is upstream's README.
->
-> **非官方修改版。** 包工头基于 [BaoCode](https://github.com/baocode-dev/baocode) 1.4.0 并选择性合入 1.5.0 的部分改动，自 2026 年 10 月起修改，自用分享，与官方开发者无关；问题请找本仓库，不要报给官方。改动见 [docs/fork.md](docs/fork.md) 和提交历史，下载见 [Releases](https://github.com/y0un922/baocode/releases)。许可证同上游，为 GPL-3.0。以下是上游的 README。
+**包工头**是 [BaoCode](https://github.com/baocode-dev/baocode) 的**非官方修改版**：Claude Code 的桌面界面，自带 IDE，再加上 pi 和 Codex 两种智能体、智能体之间的协作，以及一些自己用着顺手的改动。它基于 BaoCode 1.4.0，选择性合入了 1.5.0 的改动，自 2026 年 10 月起修改，与 BaoCode 官方开发者无关：有问题请在本仓库反馈，不要报给官方。许可证同上游，为 [GPL-3.0](LICENSE)。
+
+> **Unofficial fork.** Baogong is a personal modification of [BaoCode](https://github.com/baocode-dev/baocode) 1.4.0 with selected changes of 1.5.0, not made or supported by the BaoCode developers: report problems here, not upstream. GPL-3.0, as upstream. [In English](#in-english) below.
+
+## 下载
+
+到 [Releases](https://github.com/y0un922/baogong/releases/latest) 下载：
+
+| 系统 | 文件 |
+| --- | --- |
+| macOS，Apple 芯片 | `Baogong-<版本>-arm64.dmg` |
+| macOS，Intel | `Baogong-<版本>-x64.dmg` |
+| Windows 10 / 11（x64） | `Baogong-<版本>-setup.exe` |
+| Linux（Ubuntu 22.04 及以后，x64 / arm64） | `Baogong-<版本>-linux-{amd64,arm64}.deb`，或免安装的 `.tar.gz` |
+
+- **macOS**：打开 dmg，把包工头拖进“应用程序”。它没有经过苹果公证，首次打开前在“终端”里运行 `xattr -dr com.apple.quarantine /Applications/Baogong.app`。
+- **Windows**：安装包没有签名，SmartScreen 拦下时点“更多信息 → 仍要运行”。
+- **Linux**：`sudo apt install ./Baogong-<版本>-linux-amd64.deb`，之后从应用菜单或 `baogong` 命令打开。
+
+需要先装好 [Claude Code](https://github.com/anthropics/claude-code)；用 pi 或 Codex 时再装对应的命令行工具。包工头可以和官方 BaoCode 同时安装，但两者共用同一份数据（会话、设置），不要同时打开。它不会自动更新：新版本到 Releases 下载。
+
+## 比 BaoCode 多了什么
+
+### 更多智能体
+
+- **pi 和 Codex**：除了 Claude Code，还能在同一个界面里用 [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) 和 [OpenAI Codex](https://github.com/openai/codex)（`codex app-server`），对话、改动、模型选择和每种智能体自己的设置都在一处。pi 的待办列表和它向你提的问题直接显示在对话里。
+- **智能体之间协作**：一个智能体可以在旁边的窗格里启动别的智能体（Claude Code、Codex、pi），给它派活、等它回答、读它的结果，用完把窗格关掉。每个都在你眼前，执行命令前照样问你。
+- **在服务器上干活**：智能体在侧栏里打开本机或 ssh 的终端，在里面执行命令、读输出，你在旁边看着，随时能接手；要输密码时它会请你来输。看起来有破坏性的命令只输入不执行，由你按回车。
+
+### 对话
+
+- **消息导航**：对话右边缘，你发的每条消息一道短线；指针移上去列出所有消息，点一下跳过去。
+- **拆分窗格**：<kbd>⌘\\</kbd> 在旁边开一个新会话，<kbd>⌘-</kbd> 向下拆分。
+- **每轮的结束时间**：每轮结尾显示它在几点结束，用来判断模型的提示缓存还在不在。
+- **TPS 按模型请求算**：实际输出的 token 除以模型请求的总耗时，不把本地工具运行的时间算进去。
+
+### 侧栏用键盘操作
+
+| 快捷键 | 作用 |
+| --- | --- |
+| <kbd>⌥⌘B</kbd> | 打开侧栏并把键盘移进去；在侧栏里再按，收起侧栏回到对话 |
+| <kbd>⇧⌥⌘B</kbd> | 显示或隐藏侧栏的页面列表（文件树、改动、终端……） |
+| <kbd>⌥⌘T</kbd> | 打开侧栏的终端并聚焦；在终端里再按，收起回到对话 |
+| <kbd>⇧⌥⌘T</kbd> | 在侧栏新开一个终端 |
+| <kbd>⇧⌘E</kbd> / <kbd>⇧⌘G</kbd> | 打开侧栏的文件 / 改动页，键盘也移过去 |
+
+Windows 和 Linux 上 <kbd>⌘</kbd> 换成 <kbd>Ctrl</kbd>，<kbd>⌥</kbd> 换成 <kbd>Alt</kbd>。
+
+### 浏览器
+
+- 浏览器扩展在 [Arc](https://arc.net) 里也能用（Arc 的标签页分组不响应，改用扩展自己记录共享的标签页）。
+- 侧栏里的网页以居中的卡片显示，不再贴在顶部。
+
+### 隐私与其他
+
+- **不向官方发送数据**：不发送每日使用统计，也没有上传诊断日志给官方开发者的入口。
+- **不从官方自动更新**：官方安装包会整个替换应用，覆盖这里的改动。
+- 去掉了请你去 GitHub 点 Star 的提示。
+- 修复 macOS 标题栏的点击问题。
+- 自己的名字和图标（戴安全帽的包子），可以和官方 BaoCode 同时安装。
+
+改动细节见 [docs/fork.md](docs/fork.md)，从上游合入了什么见 [docs/upstream-review.md](docs/upstream-review.md)。
+
+## In English
+
+Baogong (包工头, "the foreman") is BaoCode, a desktop UI for Claude Code with an IDE built in, plus:
+
+- **More agents**: [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) and [OpenAI Codex](https://github.com/openai/codex) beside Claude Code, in the same interface; pi's todo list and questions in the chat.
+- **Agents working together**: an agent can start other agents (Claude Code, Codex, pi) in panes beside it, give them work, wait for and read their answers, and close them.
+- **Work on servers**: agents run commands in terminals in the side panel, on this machine or over ssh, which you watch and can take over.
+- **In the chat**: a rail of your messages to jump between them; split panes (<kbd>⌘\\</kbd>, <kbd>⌘-</kbd>); the time each turn ended; TPS measured over the model's requests.
+- **The side panel from the keyboard**: <kbd>⌥⌘B</kbd> into and out of it, <kbd>⇧⌥⌘B</kbd> its list of pages, <kbd>⌥⌘T</kbd> / <kbd>⇧⌥⌘T</kbd> its terminals.
+- **Browser**: the extension works in Arc.
+- **Privacy**: no usage statistics or diagnostics sent upstream, no updates from upstream, no GitHub Star prompt.
+
+Downloads for macOS, Windows and Linux are in [Releases](https://github.com/y0un922/baogong/releases/latest). It installs beside BaoCode, but shares its data: do not run both at once.
+
+---
+
+以下是上游 BaoCode 的 README。 / What follows is upstream's README.
 
 <a href="https://trendshift.io/repositories/289180?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-289180" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/289180/daily?language=Dart" alt="baocode-dev%2Fbaocode | Trendshift" width="250" height="55"/></a>
 

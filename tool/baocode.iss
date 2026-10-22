@@ -1,11 +1,11 @@
-; The Windows installer for BaoCode, compiled by tool/build_windows.dart.
+; The Windows installer for Baogong (包工头), this fork of BaoCode, compiled by tool/build_windows.dart.
 ;
 ; It is compiled with three /D defines, all required:
 ;   BundleDir  the Release bundle to pack (the folder holding baocode.exe)
 ;   AppVersion the version pubspec.yaml carries, as it writes it (1.0.0+1)
 ;   OutDir     where to write the installer (build/installers)
 ;
-; Output: BaoCode-<version>-setup.exe
+; Output: Baogong-<version>-setup.exe
 
 #ifndef BundleDir
   #error BundleDir is not defined: pass /DBundleDir=<release bundle folder>
@@ -28,17 +28,17 @@
 [Setup]
 ; Base of the identity Windows uses for the installed app. It must not change
 ; between versions, or an upgrade installs beside the old one instead of over
-; it.
-AppId={{6fdd732b-95c6-4c37-af6f-ff574358deb5}
-AppName=BaoCode
+; it. This fork's own, not upstream's, so that it installs beside BaoCode.
+AppId={{824f7ddc-a25c-432d-a391-f89e2e4afd9f}
+AppName=Baogong
 AppVersion={#VersionNumber}
-AppPublisher=BaoCode
-AppVerName=BaoCode {#VersionNumber}
-DefaultDirName={autopf}\BaoCode
-DefaultGroupName=BaoCode
-UninstallDisplayName=BaoCode
+AppPublisher=Baogong
+AppVerName=Baogong {#VersionNumber}
+DefaultDirName={autopf}\Baogong
+DefaultGroupName=Baogong
+UninstallDisplayName=Baogong
 UninstallDisplayIcon={app}\baocode.exe
-OutputBaseFilename=BaoCode-{#VersionNumber}-setup
+OutputBaseFilename=Baogong-{#VersionNumber}-setup
 OutputDir={#OutDir}
 ; What Explorer shows for the installer itself. Windows wants four numbers,
 ; where pubspec's version has three.
@@ -75,10 +75,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; \
   GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "addtopath"; Description: "Add BaoCode to the PATH"; \
+Name: "addtopath"; Description: "Add Baogong to the PATH"; \
   GroupDescription: "Other:"; Flags: unchecked
 Name: "contextmenu"; \
-  Description: "Add ""Open with BaoCode"" and ""Open with Fast Ide"" to Explorer's context menu"; \
+  Description: "Add ""Open with Baogong"" and ""Open with Fast Ide"" to Explorer's context menu"; \
   GroupDescription: "Other:"
 
 [Files]
@@ -92,9 +92,9 @@ Source: "{#BundleDir}\*"; DestDir: "{app}"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\BaoCode"; Filename: "{app}\baocode.exe"
-Name: "{group}\{cm:UninstallProgram,BaoCode}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\BaoCode"; Filename: "{app}\baocode.exe"; Tasks: desktopicon
+Name: "{group}\Baogong"; Filename: "{app}\baocode.exe"
+Name: "{group}\{cm:UninstallProgram,Baogong}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\Baogong"; Filename: "{app}\baocode.exe"; Tasks: desktopicon
 
 [Registry]
 ; Only when asked for. Which hive follows the install mode: a per-machine
@@ -117,7 +117,7 @@ Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
 ; reinstall, they go. Settings → General writes the same keys under HKCU
 ; (lib/platform/context_menu_io.dart), for the user alone.
 Root: HKA; Subkey: "Software\Classes\*\shell\BaoCode"; ValueType: string; \
-  ValueName: ""; ValueData: "{code:MenuLabel|BaoCode}"; Tasks: contextmenu; \
+  ValueName: ""; ValueData: "{code:MenuLabel|Baogong}"; Tasks: contextmenu; \
   Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\*\shell\BaoCode"; ValueType: string; \
   ValueName: "Icon"; ValueData: """{app}\baocode.exe"""; Tasks: contextmenu
@@ -125,7 +125,7 @@ Root: HKA; Subkey: "Software\Classes\*\shell\BaoCode\command"; \
   ValueType: string; ValueName: ""; \
   ValueData: """{app}\baocode.exe"" --baocode-agent ""%1"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\Directory\shell\BaoCode"; \
-  ValueType: string; ValueName: ""; ValueData: "{code:MenuLabel|BaoCode}"; \
+  ValueType: string; ValueName: ""; ValueData: "{code:MenuLabel|Baogong}"; \
   Tasks: contextmenu; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Directory\shell\BaoCode"; \
   ValueType: string; ValueName: "Icon"; ValueData: """{app}\baocode.exe"""; \
@@ -134,7 +134,7 @@ Root: HKA; Subkey: "Software\Classes\Directory\shell\BaoCode\command"; \
   ValueType: string; ValueName: ""; \
   ValueData: """{app}\baocode.exe"" --baocode-agent ""%V"""; Tasks: contextmenu
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\BaoCode"; \
-  ValueType: string; ValueName: ""; ValueData: "{code:MenuLabel|BaoCode}"; \
+  ValueType: string; ValueName: ""; ValueData: "{code:MenuLabel|Baogong}"; \
   Tasks: contextmenu; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\BaoCode"; \
   ValueType: string; ValueName: "Icon"; ValueData: """{app}\baocode.exe"""; \
@@ -229,7 +229,7 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\BaoCodeFastIde";
   ValueType: none; Tasks: not contextmenu; Flags: deletekey
 
 [Run]
-Filename: "{app}\baocode.exe"; Description: "{cm:LaunchProgram,BaoCode}"; \
+Filename: "{app}\baocode.exe"; Description: "{cm:LaunchProgram,Baogong}"; \
   Flags: nowait postinstall skipifsilent
 ; An update the app ran (lib/update/installer_io.dart) is silent, which
 ; skips the entry above: /RELAUNCH opens the app again once it is in place,
@@ -294,12 +294,14 @@ begin
     end;
 end;
 
-// The context menu's labels (see [Registry]): "Open with BaoCode", in
-// Chinese where Windows is. Written as code points, so the script's encoding
-// does not matter.
+// The context menu's labels (see [Registry]): "Open with Baogong", in
+// Chinese where Windows is (Baogong there 包工头). Written as code points, so
+// the script's encoding does not matter.
 function MenuLabel(Param: String): String;
 begin
-  if (GetUILanguage and $3FF) = $04 then
+  if ((GetUILanguage and $3FF) = $04) and (Param = 'Baogong') then
+    Result := #$7528#$5305#$5DE5#$5934#$6253#$5F00
+  else if (GetUILanguage and $3FF) = $04 then
     Result := #$7528 + ' ' + Param + ' ' + #$6253#$5F00
   else
     Result := 'Open with ' + Param;

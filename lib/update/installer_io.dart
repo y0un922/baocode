@@ -191,10 +191,10 @@ class WindowsUpdateInstaller implements UpdateInstaller {
 }
 
 /// The key Setup registers the app's uninstaller under, in HKLM or HKCU:
-/// tool/baocode.iss's AppId, which never changes.
+/// tool/baocode.iss's AppId, which never changes (this fork's own).
 const windowsUninstallKey =
     r'Software\Microsoft\Windows\CurrentVersion\Uninstall\'
-    '{6fdd732b-95c6-4c37-af6f-ff574358deb5}_is1';
+    '{824f7ddc-a25c-432d-a391-f89e2e4afd9f}_is1';
 
 /// Whether [executable] is under one of the Program Files folders, where
 /// a per-machine install puts it.
@@ -442,7 +442,7 @@ rm -f "\$0"
 // --- Linux -------------------------------------------------------------------
 
 /// Where the package (tool/package_linux_deb.sh) installs the app.
-const linuxInstallDirectory = '/opt/baocode';
+const linuxInstallDirectory = '/opt/baogong';
 
 /// The Linux build an app updates to: the one for the processor.
 @visibleForTesting
@@ -465,7 +465,7 @@ class LinuxUpdateInstaller implements UpdateInstaller {
     this.pkexec = '/usr/bin/pkexec',
   });
 
-  /// `/opt/baocode/baocode`, where the package put it.
+  /// `/opt/baogong/baocode`, where the package put it.
   final String executable;
   final int pid;
 
@@ -510,7 +510,7 @@ class LinuxUpdateInstaller implements UpdateInstaller {
       final result = await processes.run('dpkg-query', [
         '-W',
         r'-f=${Status}',
-        'baocode',
+        'baogong',
       ]);
       return result.exitCode == 0 &&
           '${result.stdout}'.contains('install ok installed');

@@ -649,7 +649,7 @@ std::optional<int64_t> AppWindows::Create(
   // Made hidden, at the default size, then put in place (in physical
   // pixels, which Create does not take); shown when Flutter focuses it,
   // once it has drawn.
-  if (!window->Create(title.empty() ? L"BaoCode" : title,
+  if (!window->Create(title.empty() ? L"Baogong" : title,
                       Win32Window::Point(10, 10),
                       Win32Window::Size(kDefaultWidth, kDefaultHeight))) {
     return std::nullopt;
